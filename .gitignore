@@ -1,0 +1,60 @@
+# --- Flutter / Dart ---
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+
+# --- Android ---
+.gradle/
+android/.gradle/
+android/local.properties
+local.properties
+.cxx/
+.externalNativeBuild/
+captures/
+*.jks
+*.keystore
+key.properties
+
+# --- IDE ---
+.idea/
+.vscode/
+*.swp
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Node / Bun (server) ---
+node_modules/
+server/node_modules/
+.bun/
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# --- Server build ---
+server/dist/
+*.bak
+*.tmp
+
+# --- Secrets / Environment ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Firmware ---
+firmware/**/build/
+firmware/**/.pio/
+firmware/**/*.hex
+firmware/**/*.bin
+*.ino.bin
+
+# --- Misc ---
+*.local

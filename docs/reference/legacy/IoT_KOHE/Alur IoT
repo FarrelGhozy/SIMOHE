@@ -1,0 +1,57 @@
+    BLOK 1: Sistem Tenaga Utama (Jalur Arus 12V)
+Ini adalah jalur daya besar dari matahari sampai ke aki.
+Panel Surya ke Solar Charge Controller (SCC)
+Kabel Positif (+) Panel Surya → colok ke baut berlogo Panel Surya (+) di SCC.
+Kabel Negatif (-) Panel Surya → colok ke baut berlogo Panel Surya (-) di SCC.
+SCC ke Aki 12V 100AH
+Sediakan kabel besar. Colok dari baut berlogo Aki (+) di SCC → jepit ke kepala Positif (+) Aki.
+Colok dari baut berlogo Aki (-) di SCC → jepit ke kepala Negatif (-) Aki.
+
+
+    BLOK 2: Pusat Pembagi Daya 5V (Jalur Terminal Block)
+Arduino dan sensor butuh 5V, bukan 12V. Kita pakai Step-Down dan Terminal Block di sini.
+Aturan Terminal Block: Jadikan satu sisi/barisan baut khusus untuk Positif (5V), dan barisan baut lainnya khusus untuk Negatif (GND).
+Aki 12V ke Step-Down Converter
+Kabel dari Positif (+) Aki → masuk ke baut IN+ di Modul Step-Down.
+Kabel dari Negatif (-) Aki → masuk ke baut IN- di Modul Step-Down.
+(Putar sekrup kuning di step-down sampai layar digital menunjukkan angka 5.0V).
+Step-Down ke Terminal Block
+Kabel dari OUT+ step-down → bautkan ke baris Terminal Positif (+).
+Kabel dari OUT- step-down → bautkan ke baris Terminal Negatif (-).
+Power untuk Arduino Mega
+Kabel jumper dari baris Terminal Positif (+) → colok ke pin 5V di Arduino Mega.
+Kabel jumper dari baris Terminal Negatif (-) → colok ke pin GND di Arduino Mega.
+
+
+    BLOK 3: Wiring Semua Sensor (Jalur Data & Power Sensor)
+Sekarang kita colok sensor-sensornya ke pusat daya (Terminal Block) dan ke otak (Arduino).
+Sensor Ultrasonik JSN-SR04T (Sensor Ketinggian Air)
+Modul ini punya 4 pin utama (biasanya VCC, TRIG, ECHO, GND).
+Pin VCC (atau 5V) → colok ke baris Terminal Positif (+).
+Pin GND → colok ke baris Terminal Negatif (-).
+Pin TRIG → colok ke pin digital 9 di Arduino Mega.
+Pin ECHO → colok ke pin digital 8 di Arduino Mega.
+Sensor Amonia (Biasanya tipe MQ-137 / MQ-series)
+Modul ini biasanya punya 4 pin (VCC, GND, D0/DOUT, A0/AOUT). Kita pakai yang A0 karena butuh pembacaan kadar pasti, bukan cuma on/off.
+Pin VCC (atau 5V) → colok ke baris Terminal Positif (+).
+Pin GND → colok ke baris Terminal Negatif (-).
+Pin A0 (atau AOUT) → colok ke pin Analog A0 di Arduino Mega.
+(Pin D0 / DOUT biarkan saja kosong, tidak usah dicolok kabel).
+
+
+    BLOK 4: Wiring Eksekutor (Relay & Solenoid Valve)
+Ini bagian untuk mengontrol buka-tutup kran air.
+Modul Relay 4-Channel ke Arduino & Daya
+Lihat pin-pin jarum yang ada di pinggir modul relay (bukan blok baut biru).
+Pin VCC Relay → colok ke baris Terminal Positif (+).
+Pin GND Relay → colok ke baris Terminal Negatif (-).
+Pin IN1 (Input channel 1) → colok ke pin digital 7 di Arduino Mega.
+(Pin IN2, IN3, IN4 biarkan kosong karena kita baru pakai 1 relay).
+Solenoid Valve ke Relay K1 (Blok Baut Biru)
+Siapkan kabel dari Positif (+) Aki 12V (atau dari kabel IN+ step-down) → bautkan ke lubang COM pada relay K1.
+Ambil kabel dari Kaki Pertama Solenoid Valve → bautkan ke lubang NO pada relay K1.
+Ambil kabel dari Kaki Kedua Solenoid Valve → sambung langsung ke Negatif (-) Aki 12V (atau gabung ke kabel IN- step-down).
+Ringkasan Cek Akhir:
+Semua pin VCC/5V (Arduino, Ultrasonik, Amonia, Relay) kumpul di satu jalur Terminal Positif.
+Semua pin GND kumpul di satu jalur Terminal Negatif.
+Solenoid valve jalurnya terpisah menggunakan tegangan 12V langsung dari aki, di mana Relay (K1) hanya bertugas sebagai saklar pemutus jalur positifnya.

@@ -1,0 +1,59 @@
+=========================================================
+ DIAGRAM KABEL (WIRING) 
+=========================================================
+
+[1. SUMBER DAYA & PENURUN TEGANGAN]
+Panel Surya (+)    ======> SCC (Baut Logo Panel +)
+Panel Surya (-)    ======> SCC (Baut Logo Panel -)
+
+SCC (Baut Aki +)   ======> Aki 12V (Kutub Positif +)
+SCC (Baut Aki -)   ======> Aki 12V (Kutub Negatif -)
+
+Aki 12V (+)        ======> Step-Down (Baut IN+)
+Aki 12V (-)        ======> Step-Down (Baut IN-)
+  *(Catatan: Putar sekrup Step-Down sampai output 5.0V)*
+
+Step-Down (OUT+)   ======> [ TERMINAL BLOCK POSITIF (+) ]
+Step-Down (OUT-)   ======> [ TERMINAL BLOCK NEGATIF (-) ]
+
+
+---------------------------------------------------------
+[2. SENSOR ULTRASONIK (JSN-SR04T)] -> Cek Volume Kohe
+Pin VCC (Daya)     ======> Terminal Block Positif (+)
+Pin GND (Ground)   ======> Terminal Block Negatif (-)
+Pin TRIG (Kirim)   ======> Arduino Mega (Pin Digital 9)
+Pin ECHO (Terima)  ======> Arduino Mega (Pin Digital 8)
+---------------------------------------------------------
+
+---------------------------------------------------------
+[3. SENSOR AMONIA (MQ-137 / MQ Series)] -> Cek Bau Gas
+Pin VCC (Daya)     ======> Terminal Block Positif (+)
+Pin GND (Ground)   ======> Terminal Block Negatif (-)
+Pin A0 / AOUT      ======> Arduino Mega (Pin Analog A0)
+Pin D0 / DOUT      ======> (BIARKAN KOSONG/TIDAK DIPAKAI)
+---------------------------------------------------------
+
+---------------------------------------------------------
+[4. ARDUINO MEGA] -> Otak Sistem
+Pin 5V (Daya)      ======> Terminal Block Positif (+)
+Pin GND (Ground)   ======> Terminal Block Negatif (-)
+  *(Catatan: Arduino nyala dari Terminal, bukan dari USB)*
+---------------------------------------------------------
+
+---------------------------------------------------------
+[5. MODUL RELAY 4-CHANNEL] -> Saklar Pemutus
+-> Bagian Pin Jarum (Sisi Bawah):
+Pin VCC (Daya)     ======> Terminal Block Positif (+)
+Pin GND (Ground)   ======> Terminal Block Negatif (-)
+Pin IN1 (Sinyal)   ======> Arduino Mega (Pin Digital 7)
+
+-> Bagian Blok Baut Biru (K1 / Relay Pertama):
+Baut COM           ======> Aki 12V (Kutub Positif +)
+Baut NO            ======> Kaki Pertama Solenoid Valve
+---------------------------------------------------------
+
+---------------------------------------------------------
+[6. SOLENOID VALVE 12V] -> Kran Pembuang Kohe Cair
+Kaki Pertama       ======> Modul Relay (Baut NO pada K1)
+Kaki Kedua         ======> Aki 12V (Kutub Negatif -)
+---------------------------------------------------------

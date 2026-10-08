@@ -1,0 +1,52 @@
+[ MULAI ]
+           |
+           v
+   [ INISIALISASI SISTEM ]
+ - Daya mengalir (Panel Surya -> SCC -> Aki -> StepDown -> Arduino & Sensor)
+ - Deklarasi Pin Sensor Ultrasonik (Ukur jarak/volume kohe)
+ - Deklarasi Pin Sensor Amonia (Ukur kadar gas NH3/bau)
+ - Relay K1 = OFF (Solenoid saluran pembuangan tertutup)
+           |
+           v
++> [ PEMBACAAN DATA SENSOR BERSAMAAN ] <------------------------------------+
+|          |                                                                |
+|          +---> 1. Ultrasonik: Cek ketinggian tumpukan kohe cair           |
+|          +---> 2. Amonia: Cek kadar kepekatan gas amonia kohe             |
+|          |                                                                |
+|          v                                                                |
+|  < KONDISI PEMICU PEMBUANGAN (Batas Kritis) >                             |
+|  Apakah Volume Kohe sudah menyentuh Batas Maksimal (Penuh)?               |
+|                                ATAU                                       |
+|  Apakah Kadar Amonia menyentuh Level Bahaya (Sangat Bau)?                 |
+|          |                                                                |
+|          +--- [ YA (Salah satu atau keduanya terpenuhi) ]                 |
+|          |            |                                                   |
+|          |            v                                                   |
+|          |    [ AKTIFKAN RELAY K1 (ON) ]                                  |
+|          |            |                                                   |
+|          |            v                                                   |
+|          |    [ SOLENOID VALVE TERBUKA ]                                  |
+|          |    (Air/cairan limbah kohe mulai terbuang keluar bak)          |
+|          |            |                                                   |
+|          |            v                                                   |
+|          |  < KONDISI PENGHENTIAN PEMBUANGAN (Batas Aman) >               |
+|          |  Apakah Volume Kohe sudah surut ke Batas Minimal (Terkuras)?   |
+|          |                             DAN                                |
+|          |  Kadar Amonia sudah turun ke Level Normal?                     |
+|          |            |                                 |                 |
+|          |          [ YA ]                          [ TIDAK ]             |
+|          |            |                                 |                 |
+|          |            v                                 |                 |
+|          |    [ MATIKAN RELAY K1 (OFF) ]                |                 |
+|          |            |                                 |                 |
+|          |            v                                 |                 |
+|          |    [ SOLENOID VALVE TERTUTUP ]               |                 |
+|          |    (Pembuangan berhenti)                     +--->(Solenoid)   |
+|          |                                               --->(Terus Buka) |
+|          +--- [ TIDAK (Kondisi Masih Aman) ]                              |
+|                       |                                                   |
+|                       v                                                   |
+|                   [ DELAY / JEDA ]                                        |
+|         (Sistem menunggu 1-2 detik agar bacaan sensor stabil)             |
+|                       |                                                   |
++-----------------------+ (Kembali ke atas, ulangi pembacaan terus menerus) |
