@@ -1,5 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { pool } from '../../src/db/client'
+import { beforeAll, describe, expect, test } from 'bun:test'
 import {
   apiRequest,
   appHeaders,
@@ -13,10 +12,6 @@ import {
 beforeAll(async () => {
   await resetDatabase()
   await seedDevice()
-})
-
-afterAll(async () => {
-  await pool.end()
 })
 
 describe('GET /api/health', () => {
