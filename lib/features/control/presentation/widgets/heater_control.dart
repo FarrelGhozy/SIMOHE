@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_exception.dart';
-import '../../../../core/theme/brand_colors.dart';
 import '../../../../shared/models/enums.dart';
-import '../../../../shared/widgets/brand_icon.dart';
 import '../../../../shared/widgets/section_card.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../dashboard/domain/providers.dart';
@@ -86,7 +84,6 @@ class HeaterControl extends ConsumerWidget {
 
     return SectionCard(
       title: 'Heater',
-      leading: const BrandIcon(asset: BrandAssets.iconHeater, size: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

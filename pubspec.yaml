@@ -73,7 +73,6 @@ flutter:
 
   assets:
     - assets/branding/
-    - assets/icons/feature/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -124,13 +123,13 @@ flutter_launcher_icons:
 
 # Splash screen (Android saja). Jalankan: dart run flutter_native_splash:create
 flutter_native_splash:
-  color: "#084E34"
-  image: branding/app_icon_foreground.png
+  color: "#FDFDFD"
+  image: assets/branding/emblem.png
   android: true
   ios: false
   web: false
   android_12:
-    color: "#084E34"
-    image: branding/app_icon_foreground.png
-    icon_background_color: "#084E34"
+    color: "#FDFDFD"
+    image: assets/branding/emblem.png
+    icon_background_color: "#FDFDFD"
 

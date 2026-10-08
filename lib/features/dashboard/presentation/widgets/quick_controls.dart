@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_exception.dart';
-import '../../../../core/theme/brand_colors.dart';
 import '../../../../shared/models/enums.dart';
 import '../../../../shared/models/live_state.dart';
-import '../../../../shared/widgets/brand_icon.dart';
 import '../../../../shared/widgets/section_card.dart';
 import '../../../control/domain/providers.dart';
 import '../../../settings/domain/providers.dart';
@@ -82,7 +80,7 @@ class QuickControls extends ConsumerWidget {
         children: [
           FilledButton.tonalIcon(
             onPressed: () => _toggleValve(context, ref),
-            icon: const BrandIcon(asset: BrandAssets.iconKatup, size: 20),
+            icon: Icon(state.valveOpen ? Icons.invert_colors_off : Icons.water_drop),
             label: Text(state.valveOpen ? 'Tutup katup' : 'Buka katup'),
           ),
           const SizedBox(height: 16),
@@ -98,7 +96,7 @@ class QuickControls extends ConsumerWidget {
               ButtonSegment(
                 value: HeaterMode.forceOn,
                 label: Text('ON'),
-                icon: BrandIcon(asset: BrandAssets.iconHeater, size: 18),
+                icon: Icon(Icons.power_settings_new),
               ),
               ButtonSegment(
                 value: HeaterMode.forceOff,

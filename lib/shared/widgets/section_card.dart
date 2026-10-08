@@ -4,14 +4,12 @@ class SectionCard extends StatelessWidget {
   const SectionCard({
     super.key,
     this.title,
-    this.leading,
     this.trailing,
     required this.child,
     this.padding = const EdgeInsets.all(16),
   });
 
   final String? title;
-  final Widget? leading;
   final Widget? trailing;
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -31,10 +29,6 @@ class SectionCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
                   children: [
-                    if (leading != null) ...[
-                      leading!,
-                      const SizedBox(width: 8),
-                    ],
                     Expanded(
                       child: Text(title!, style: theme.textTheme.titleMedium),
                     ),

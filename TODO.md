@@ -90,11 +90,11 @@ Legenda prioritas: `P0` wajib, `P1` penting, `P2` opsional.
 
 ## Branding & Aset Visual `[selesai]`
 - [x] Dokumentasi brand `docs/15-BRANDING.md` (palet, aturan logo, inventaris)
-- [x] Aset logo & 9 ikon fitur teroptimasi (`assets/`)
+- [x] Aset brand teroptimasi: emblem + logo monochrome (`assets/branding/`)
 - [x] Tema hijau brand `#084E34` + komponen `BrandIcon`
-- [x] Logo & ikon fitur di UI (dashboard, kontrol, device)
+- [x] Emblem di AppBar; ikon UI memakai Material Icons bawaan
 - [x] Ikon aplikasi Android & web (launcher, favicon, manifest)
-- [x] Splash screen Android (`flutter_native_splash`, web: false)
+- [x] Splash screen Android memakai emblem (`flutter_native_splash`, web: false)
 
 ---
 
