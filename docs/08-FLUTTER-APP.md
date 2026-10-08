@@ -195,7 +195,10 @@ flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:3000 --dart-de
 - Ikon fitur dipakai dari **Material Icons** bawaan, bukan ikon ilustrasi.
 - Widget `BrandIcon` menampilkan emblem (dengan fallback ikon Material).
 - Ikon aplikasi (Android + web) di-generate via `flutter_launcher_icons`
-  (`dart run flutter_launcher_icons`); splash Android via `flutter_native_splash`
-  (`dart run flutter_native_splash:create`, `web: false`) memakai emblem.
+  (`dart run flutter_launcher_icons`); splash Android + web via
+  `flutter_native_splash` (`dart run flutter_native_splash:create`,
+  `web: true`): latar hijau tua brand `#084E34` + logo komposit
+  `assets/branding/splash_logo.png` (emblem putih + teks SIMOHE +
+  tagline "Sistem Monitoring Pengolahan Kotoran Hewan (IoT)").
 - Sumber ikon launcher/splash ada di `branding/` (tidak ikut di-ship ke bundle).
 

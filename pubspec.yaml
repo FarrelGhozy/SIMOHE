@@ -121,15 +121,16 @@ flutter_launcher_icons:
     theme_color: "#084E34"
     favicon: true
 
-# Splash screen (Android saja). Jalankan: dart run flutter_native_splash:create
+# Splash screen (Android + Web). Jalankan: dart run flutter_native_splash:create
+# Latar hijau tua brand + logo komposit (emblem putih + teks SIMOHE).
 flutter_native_splash:
-  color: "#FDFDFD"
-  image: assets/branding/emblem.png
+  color: "#084E34"
+  image: assets/branding/splash_logo.png
   android: true
   ios: false
-  web: false
+  web: true
   android_12:
-    color: "#FDFDFD"
-    image: assets/branding/emblem.png
-    icon_background_color: "#FDFDFD"
+    color: "#084E34"
+    image: assets/branding/splash_logo.png
+    icon_background_color: "#084E34"
 
