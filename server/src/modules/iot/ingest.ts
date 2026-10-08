@@ -11,6 +11,7 @@ import {
   telemetryRaw,
 } from '../../db/schema'
 import { elapsedSeconds } from '../../lib/time'
+import { logger } from '../../logger'
 import {
   buildEvent,
   deriveStatus,
@@ -111,7 +112,14 @@ export async function ingestTelemetry(device: Device, body: IngestBody): Promise
 
   for (const reported of body.events ?? []) {
     const built = fromDeviceEvent(device.id, reported.code, reported.detail, reported.ts)
-    if (built) newEvents.push(built)
+    if (built) {
+      newEvents.push(built)
+    } else {
+      logger.warn(
+        { deviceId: device.id, code: reported.code },
+        'kode event perangkat tidak dikenal diabaikan',
+      )
+    }
   }
 
   await db

@@ -85,15 +85,7 @@ export function fromDeviceEvent(
   ts?: string,
 ): NewEvent | null {
   const mapped = deviceEventMap[code.toUpperCase()]
-  if (!mapped) {
-    return buildEvent({
-      deviceId,
-      type: 'safety_cutoff',
-      message: `Event perangkat tidak dikenal: ${code}`,
-      severity: 'info',
-      payload: { code, detail, ts },
-    })
-  }
+  if (!mapped) return null
 
   return buildEvent({
     deviceId,

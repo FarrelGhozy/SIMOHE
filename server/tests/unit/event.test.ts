@@ -30,8 +30,8 @@ describe('event service', () => {
     expect(event?.severity).toBe('critical')
   })
 
-  test('fromDeviceEvent tidak null untuk kode tak dikenal', () => {
-    expect(fromDeviceEvent(1, 'WHATEVER')).not.toBeNull()
+  test('fromDeviceEvent null untuk kode tak dikenal', () => {
+    expect(fromDeviceEvent(1, 'WHATEVER')).toBeNull()
   })
 
   test('deviceOfflineEvent menyertakan last_seen_at', () => {
