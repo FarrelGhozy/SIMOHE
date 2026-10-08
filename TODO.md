@@ -59,23 +59,23 @@ Legenda prioritas: `P0` wajib, `P1` penting, `P2` opsional.
 
 ---
 
-## Fase 3 — Aplikasi Flutter Inti `P0`
-- [ ] Tambah dependensi: riverpod, go_router, dio, freezed, json_serializable, fl_chart, intl, shared_preferences
-- [ ] `core/network/api_client.dart` (Dio + token + error mapping)
-- [ ] `core/router/app_router.dart` (shell bottom nav / rail)
-- [ ] Model domain `shared/models` (device, state, reading, event, settings)
-- [ ] Repository + provider per fitur
-- [ ] **Dashboard**: kartu suhu, NH3, status, koneksi, kontrol cepat, mini chart
-- [ ] **History**: grafik suhu & NH3, pemilih rentang, ringkasan min/max/avg, ekspor CSV (web)
-- [ ] **Control**: katup (konfirmasi + TTL info), heater (auto/on/off)
-- [ ] **Notifications**: daftar event, filter belum dibaca, tandai dibaca
-- [ ] **Settings**: interval sampling/ingest, ambang suhu & NH3, mode heater
-- [ ] **Device**: status, firmware, last_seen
-- [ ] Tema & widget bersama (`StatusBadge`, `MetricCard`, `TrendChart`)
-- [ ] Polling live (10s) & events (30–60s)
-- [ ] Cache offline (shared_preferences)
-- [ ] Widget test + unit test
-- [ ] `flutter analyze` bersih
+## Fase 3 — Aplikasi Flutter Inti `[selesai]` `P0`
+- [x] Tambah dependensi: riverpod, go_router, dio, freezed, json_serializable, fl_chart, intl, shared_preferences
+- [x] `core/network/api_client.dart` (Dio + token + error mapping)
+- [x] `core/router/app_router.dart` (shell bottom nav / rail)
+- [x] Model domain `shared/models` (device, state, reading, event, settings)
+- [x] Repository + provider per fitur
+- [x] **Dashboard**: kartu suhu, NH3, status, koneksi, kontrol cepat, mini chart
+- [x] **History**: grafik suhu & NH3, pemilih rentang, ringkasan min/max/avg, ekspor CSV (web)
+- [x] **Control**: katup (konfirmasi + TTL info), heater (auto/on/off)
+- [x] **Notifications**: daftar event, filter belum dibaca, tandai dibaca
+- [x] **Settings**: interval sampling/ingest, ambang suhu & NH3, mode heater
+- [x] **Device**: status, firmware, last_seen
+- [x] Tema & widget bersama (`StatusBadge`, `MetricCard`, `TrendChart`)
+- [x] Polling live (10s) & events (30–60s)
+- [x] Cache offline (shared_preferences)
+- [x] Widget test + unit test
+- [x] `flutter analyze` bersih
 
 ---
 

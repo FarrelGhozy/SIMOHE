@@ -156,8 +156,29 @@ class EventItem {
 ## Konfigurasi Build
 ```bash
 # Android
-flutter run --dart-define=API_BASE_URL=http://192.168.1.10:3000
+flutter run --dart-define=API_BASE_URL=http://192.168.1.10:3000 --dart-define=APP_TOKEN=change-me-app-token
 
 # Web
-flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:3000
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:3000 --dart-define=APP_TOKEN=change-me-app-token
 ```
+
+## Catatan Implementasi (Fase 3)
+- Paket aktual: `flutter_riverpod`, `go_router`, `dio`, `freezed` +
+  `json_serializable` (codegen `build_runner`), `fl_chart`, `intl`,
+  `shared_preferences`, dan `web` (khusus ekspor CSV).
+- Autentikasi: `ApiClient` menyisipkan `Authorization: Bearer <APP_TOKEN>`.
+  `API_BASE_URL` dan `APP_TOKEN` diisi lewat `--dart-define` (lihat di atas).
+- Routing: 5 tab dalam shell adaptif (`NavigationBar` < 700 px,
+  `NavigationRail` ≥ 700 px). `/device` adalah rute penuh di luar shell.
+- Model `freezed` memetakan langsung kontrak `docs/06` (snake_case lewat
+  `@JsonKey`, enum lewat `@JsonValue`); file `.freezed.dart`/`.g.dart`
+  di-generate dan ikut di-commit.
+- Polling live tiap 10 detik dan events tiap 30 detik via `Timer.periodic`
+  di dalam notifier Riverpod; timer dibatalkan saat provider dispose.
+- Cache offline hanya untuk nilai `live` (`shared_preferences`), dipakai bila
+  request gagal karena jaringan.
+- Ekspor CSV memakai `package:web` di web dan melempar `UnsupportedError` di
+  platform non-web.
+- Notifikasi lokal (`flutter_local_notifications`) **ditunda** (lihat backlog);
+  notifikasi in-app (badge jumlah + daftar event) sudah tersedia.
+
