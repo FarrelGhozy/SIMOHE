@@ -26,6 +26,7 @@ const EnvSchema = Type.Object({
   DEVICE_LOCATION: Type.Optional(Type.String()),
   RATE_LIMIT_INGEST_PER_SEC: Type.Integer({ minimum: 1 }),
   RATE_LIMIT_APP_PER_SEC: Type.Integer({ minimum: 1 }),
+  JOBS_ENABLED: Type.Boolean(),
 })
 
 export type Env = Static<typeof EnvSchema>
@@ -52,6 +53,7 @@ const raw = {
   DEVICE_LOCATION: optional(process.env.DEVICE_LOCATION),
   RATE_LIMIT_INGEST_PER_SEC: toInt(process.env.RATE_LIMIT_INGEST_PER_SEC, 1),
   RATE_LIMIT_APP_PER_SEC: toInt(process.env.RATE_LIMIT_APP_PER_SEC, 10),
+  JOBS_ENABLED: process.env.JOBS_ENABLED !== 'false',
 }
 
 if (!Value.Check(EnvSchema, raw)) {
