@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/brand_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/models/live_state.dart';
+import '../../../../shared/widgets/brand_icon.dart';
 import '../../../../shared/widgets/section_card.dart';
 
 class MaturityProgress extends StatelessWidget {
@@ -16,6 +18,10 @@ class MaturityProgress extends StatelessWidget {
 
     return SectionCard(
       title: 'Kematangan pupuk',
+      leading: const BrandIcon(
+        asset: BrandAssets.iconKematangan,
+        size: 32,
+      ),
       child: maturity.mature
           ? Row(
               children: [

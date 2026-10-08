@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/brand_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/models/live_state.dart';
 import '../../../../shared/widgets/metric_card.dart';
@@ -33,7 +34,7 @@ class SensorMetrics extends ConsumerWidget {
               title: 'Suhu air',
               value: Formatters.number(temp),
               unit: '°C',
-              icon: Icons.thermostat,
+              brandIcon: BrandAssets.iconSuhuAir,
               tone: toneForTemp(temp, tempMin, tempMax),
               subtitle: tempStatusLabel(temp, tempMin, tempMax),
             ),
@@ -44,7 +45,7 @@ class SensorMetrics extends ConsumerWidget {
               title: 'Gas NH3',
               value: Formatters.number(nh3),
               unit: 'ppm',
-              icon: Icons.air,
+              brandIcon: BrandAssets.iconGasAmonia,
               tone: nh3 == null
                   ? StatusTone.offline
                   : (nh3 >= threshold ? StatusTone.warning : StatusTone.normal),

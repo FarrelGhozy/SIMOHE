@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/brand_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/models/device_detail.dart';
+import '../../../../shared/widgets/brand_icon.dart';
 import '../../../../shared/widgets/section_card.dart';
 import '../../../../shared/widgets/status_badge.dart';
 
@@ -14,6 +16,7 @@ class DeviceInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return SectionCard(
       title: device.name,
+      leading: const BrandIcon(asset: BrandAssets.iconKoneksi, size: 32),
       trailing: StatusBadge(
         label: device.isOnline ? 'Online' : 'Offline',
         tone: device.isOnline ? StatusTone.normal : StatusTone.offline,

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/brand_colors.dart';
 import '../../../shared/models/live_state.dart';
 import '../../../shared/widgets/async_value_view.dart';
+import '../../../shared/widgets/brand_icon.dart';
 import '../domain/providers.dart';
 import 'widgets/dashboard_header.dart';
 import 'widgets/dashboard_trend.dart';
@@ -18,7 +20,14 @@ class DashboardScreen extends ConsumerWidget {
     final live = ref.watch(liveProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            BrandIcon(asset: BrandAssets.emblem, size: 28),
+            SizedBox(width: 10),
+            Text('SIMOHE'),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Muat ulang',
