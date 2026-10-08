@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../shared/models/enums.dart';
 import '../../../../shared/models/live_state.dart';
+import '../../../../shared/widgets/app_segmented.dart';
 import '../../../../shared/widgets/section_card.dart';
 import '../../../control/domain/providers.dart';
 import '../../../settings/domain/providers.dart';
@@ -20,8 +21,7 @@ class QuickControls extends ConsumerWidget {
   ) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final result =
-          await ref.read(commandsProvider.notifier).send(action);
+      final result = await ref.read(commandsProvider.notifier).send(action);
       messenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -38,7 +38,8 @@ class QuickControls extends ConsumerWidget {
 
   Future<void> _toggleValve(BuildContext context, WidgetRef ref) async {
     final open = live.state.valveOpen;
-    final maxOpen = ref.read(settingsProvider).asData?.value.valveMaxOpenMin ?? 10;
+    final maxOpen =
+        ref.read(settingsProvider).asData?.value.valveMaxOpenMin ?? 10;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -47,7 +48,7 @@ class QuickControls extends ConsumerWidget {
           open
               ? 'Katup akan ditutup. Pastikan penampung siap.'
               : 'Katup akan dibuka. Katup tertutup otomatis setelah '
-                  '$maxOpen menit (safety).',
+                    '$maxOpen menit (safety).',
         ),
         actions: [
           TextButton(
@@ -80,39 +81,45 @@ class QuickControls extends ConsumerWidget {
         children: [
           FilledButton.tonalIcon(
             onPressed: () => _toggleValve(context, ref),
-            icon: Icon(state.valveOpen ? Icons.invert_colors_off : Icons.water_drop),
+            icon: Icon(
+              state.valveOpen ? Icons.invert_colors_off : Icons.water_drop,
+            ),
             label: Text(state.valveOpen ? 'Tutup katup' : 'Buka katup'),
           ),
           const SizedBox(height: 16),
           Text('Mode heater', style: Theme.of(context).textTheme.labelLarge),
           const SizedBox(height: 8),
-          SegmentedButton<HeaterMode>(
-            segments: const [
-              ButtonSegment(
-                value: HeaterMode.auto,
-                label: Text('AUTO'),
-                icon: Icon(Icons.autorenew),
-              ),
-              ButtonSegment(
-                value: HeaterMode.forceOn,
-                label: Text('ON'),
-                icon: Icon(Icons.power_settings_new),
-              ),
-              ButtonSegment(
-                value: HeaterMode.forceOff,
-                label: Text('OFF'),
-                icon: Icon(Icons.block),
-              ),
-            ],
-            selected: {state.mode},
-            onSelectionChanged: (selection) {
-              final action = switch (selection.first) {
-                HeaterMode.auto => CommandAction.heaterAuto,
-                HeaterMode.forceOn => CommandAction.heaterOn,
-                HeaterMode.forceOff => CommandAction.heaterOff,
-              };
-              _send(context, ref, action);
-            },
+          SizedBox(
+            width: double.infinity,
+            child: AppSegmented<HeaterMode>(
+              expanded: true,
+              segments: const [
+                ButtonSegment(
+                  value: HeaterMode.auto,
+                  label: Text('AUTO'),
+                  icon: Icon(Icons.autorenew),
+                ),
+                ButtonSegment(
+                  value: HeaterMode.forceOn,
+                  label: Text('ON'),
+                  icon: Icon(Icons.power_settings_new),
+                ),
+                ButtonSegment(
+                  value: HeaterMode.forceOff,
+                  label: Text('OFF'),
+                  icon: Icon(Icons.block),
+                ),
+              ],
+              selected: {state.mode},
+              onSelectionChanged: (selection) {
+                final action = switch (selection.first) {
+                  HeaterMode.auto => CommandAction.heaterAuto,
+                  HeaterMode.forceOn => CommandAction.heaterOn,
+                  HeaterMode.forceOff => CommandAction.heaterOff,
+                };
+                _send(context, ref, action);
+              },
+            ),
           ),
         ],
       ),

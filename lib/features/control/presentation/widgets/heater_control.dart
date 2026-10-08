@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../../../shared/models/enums.dart';
+import '../../../../shared/widgets/app_segmented.dart';
 import '../../../../shared/widgets/section_card.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../dashboard/domain/providers.dart';
@@ -95,48 +96,51 @@ class HeaterControl extends ConsumerWidget {
                 icon: Icons.local_fire_department,
               ),
               const Spacer(),
-              Text('Mode: ${mode.label}',
-                  style: Theme.of(context).textTheme.bodySmall),
+              Text(
+                'Mode: ${mode.label}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          SegmentedButton<HeaterMode>(
-            segments: const [
-              ButtonSegment(value: HeaterMode.auto, label: Text('AUTO')),
-              ButtonSegment(value: HeaterMode.forceOn, label: Text('ON')),
-              ButtonSegment(value: HeaterMode.forceOff, label: Text('OFF')),
-            ],
-            selected: {mode},
-            onSelectionChanged: !ready
-                ? null
-                : (selection) async {
-                    switch (selection.first) {
-                      case HeaterMode.auto:
-                        await _send(context, ref, CommandAction.heaterAuto);
-                      case HeaterMode.forceOn:
-                        final duration = await _askDuration(
-                          context,
-                          maxOn,
-                        );
-                        if (duration == null || !context.mounted) return;
-                        await _send(
-                          context,
-                          ref,
-                          CommandAction.heaterOn,
-                          durationMin: duration,
-                        );
-                      case HeaterMode.forceOff:
-                        await _send(context, ref, CommandAction.heaterOff);
-                    }
-                  },
+          SizedBox(
+            width: double.infinity,
+            child: AppSegmented<HeaterMode>(
+              expanded: true,
+              segments: const [
+                ButtonSegment(value: HeaterMode.auto, label: Text('AUTO')),
+                ButtonSegment(value: HeaterMode.forceOn, label: Text('ON')),
+                ButtonSegment(value: HeaterMode.forceOff, label: Text('OFF')),
+              ],
+              selected: {mode},
+              onSelectionChanged: !ready
+                  ? null
+                  : (selection) async {
+                      switch (selection.first) {
+                        case HeaterMode.auto:
+                          await _send(context, ref, CommandAction.heaterAuto);
+                        case HeaterMode.forceOn:
+                          final duration = await _askDuration(context, maxOn);
+                          if (duration == null || !context.mounted) return;
+                          await _send(
+                            context,
+                            ref,
+                            CommandAction.heaterOn,
+                            durationMin: duration,
+                          );
+                        case HeaterMode.forceOff:
+                          await _send(context, ref, CommandAction.heaterOff);
+                      }
+                    },
+            ),
           ),
           const SizedBox(height: 12),
           Text(
             'Safety: heater mati otomatis bila suhu ≥ $tempMax °C atau '
             'menyala lebih dari $maxOn menit.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),

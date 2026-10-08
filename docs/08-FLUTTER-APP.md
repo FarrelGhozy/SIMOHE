@@ -104,7 +104,12 @@ features/<nama>/
 ## Desain UI
 - Material 3, seed hijau (pertanian).
 - Warna status: normal=hijau, peringatan=oranye, bahaya=merah, offline=abu.
-- Komponen bersama: `StatusBadge`, `MetricCard`, `TrendChart`, `SectionCard`.
+- Komponen bersama: `StatusBadge`, `MetricCard`, `TrendChart`, `SectionCard`,
+  `AppSegmented`.
+- Segmented control (`AppSegmented`, dipakai untuk mode heater dan rentang
+  riwayat) selalu `showSelectedIcon: false` — tanpa ikon ceklis; status
+  terpilih hanya ditandai warna background/foreground tema agar lebar segmen
+  stabil.
 - Aksesibilitas: kontras cukup, target sentuh ≥ 48dp, dukung teks besar.
 
 ## Model Domain (ringkas)
