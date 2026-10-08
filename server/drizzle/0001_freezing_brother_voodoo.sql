@@ -1,0 +1,1 @@
+ALTER TABLE `latest_state` ADD `mature_streak_sec` int DEFAULT 0 NOT NULL;

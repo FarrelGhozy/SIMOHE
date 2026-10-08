@@ -35,6 +35,7 @@ erDiagram
       boolean valve_open
       varchar mode
       varchar status
+      int mature_streak_sec
       datetime updated_at
     }
     TELEMETRY_RAW {
@@ -113,7 +114,7 @@ erDiagram
 CREATE TABLE devices (
   id               BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name             VARCHAR(120) NOT NULL,
-  device_key       CHAR(32) NOT NULL UNIQUE,
+  device_key       CHAR(64) NOT NULL UNIQUE,  -- SHA-256 hash dari device key
   location         VARCHAR(160) NULL,
   firmware_version VARCHAR(32) NULL,
   last_seen_at     DATETIME NULL,
@@ -132,6 +133,7 @@ CREATE TABLE latest_state (
   valve_open  TINYINT(1) NOT NULL DEFAULT 0,
   mode        VARCHAR(16) NOT NULL DEFAULT 'AUTO',
   status      VARCHAR(24) NOT NULL DEFAULT 'idle',
+  mature_streak_sec INT NOT NULL DEFAULT 0,
   updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_ls_device FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -247,7 +249,8 @@ CREATE TABLE batches (
 - Nilai desimal: suhu `(5,2)`, NH3 `(8,3)`.
 
 ## Seed Awal
-- 1 device dengan `device_key` acak.
+- 1 device dengan `device_key` acak (disimpan sebagai hash SHA-256; nilai
+  plaintext dicetak sekali saat seed).
 - 1 baris `settings` default.
 - 1 batch `fermenting` (opsional).
 
