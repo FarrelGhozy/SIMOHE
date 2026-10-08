@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import 'brand_icon.dart';
 import 'status_badge.dart';
 
 /// Kartu metrik: menampilkan satu nilai sensor/aktuator secara menonjol.
@@ -11,6 +12,7 @@ class MetricCard extends StatelessWidget {
     required this.value,
     this.unit,
     this.icon,
+    this.brandIcon,
     this.tone = StatusTone.normal,
     this.subtitle,
     this.trailing,
@@ -20,6 +22,7 @@ class MetricCard extends StatelessWidget {
   final String value;
   final String? unit;
   final IconData? icon;
+  final String? brandIcon;
   final StatusTone tone;
   final String? subtitle;
   final Widget? trailing;
@@ -48,7 +51,14 @@ class MetricCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                if (icon != null) ...[
+                if (brandIcon != null) ...[
+                  BrandIcon(
+                    asset: brandIcon!,
+                    size: 32,
+                    semanticLabel: title,
+                  ),
+                  const SizedBox(width: 8),
+                ] else if (icon != null) ...[
                   Icon(icon, size: 18, color: accent),
                   const SizedBox(width: 8),
                 ],

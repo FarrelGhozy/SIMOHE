@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'brand_colors.dart';
+
 /// Warna status global: normal, peringatan, bahaya, offline.
 @immutable
 class AppStatusColors extends ThemeExtension<AppStatusColors> {
@@ -48,10 +50,10 @@ class AppStatusColors extends ThemeExtension<AppStatusColors> {
 class AppTheme {
   const AppTheme._();
 
-  static const Color _seedColor = Color(0xFF2E7D32);
+  static const Color _seedColor = BrandColors.primary;
 
   static const AppStatusColors _statusLight = AppStatusColors(
-    normal: Color(0xFF2E7D32),
+    normal: BrandColors.accent,
     warning: Color(0xFFEF6C00),
     danger: Color(0xFFC62828),
     offline: Color(0xFF757575),
