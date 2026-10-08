@@ -58,3 +58,4 @@ firmware/**/*.bin
 
 # --- Misc ---
 *.local
+.playwright-mcp/

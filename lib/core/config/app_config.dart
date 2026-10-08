@@ -24,6 +24,9 @@ class AppConfig {
   /// Interval polling daftar event/notifikasi (detik).
   static const int eventsPollIntervalSeconds = 30;
 
+  /// Interval polling status perintah pending→sent→acked (detik).
+  static const int commandPollIntervalSeconds = 5;
+
   /// Batas waktu request HTTP.
   static const Duration requestTimeout = Duration(seconds: 10);
 }
