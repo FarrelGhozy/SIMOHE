@@ -1,0 +1,10 @@
+{
+  "name": "simohe_esp_core",
+  "version": "0.1.0",
+  "description": "Logika bersama firmware ESP8266 SIMOHE: backoff, buffer offline, parser respons, pembentuk ingest.",
+  "keywords": "simohe, esp8266, iot",
+  "build": {
+    "srcDir": "src",
+    "includeDir": "src"
+  }
+}

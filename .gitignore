@@ -55,6 +55,8 @@ firmware/**/.pio/
 firmware/**/*.hex
 firmware/**/*.bin
 *.ino.bin
+# Kredensial firmware (salin dari secrets.example.h)
+firmware/**/secrets.h
 
 # --- Misc ---
 *.local
