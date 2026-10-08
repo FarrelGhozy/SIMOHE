@@ -16,8 +16,10 @@ Semua stempel waktu memakai ISO-8601 UTC. Semua payload JSON.
 
 **Telemetry** (tiap 2 detik / saat berubah)
 ```json
-{"type":"telemetry","seq":1234,"uptime":98765,"temp_c":31.2,"nh3_ppm":18.42,"temp_ok":true,"heater":true,"valve":false,"mode":"AUTO","mature":false}
+{"type":"telemetry","seq":1234,"uptime":98765,"temp_c":31.2,"nh3_ppm":18.42,"temp_ok":true,"nh3_ok":true,"heater":true,"valve":false,"mode":"AUTO","mature":false}
 ```
+`temp_c`/`nh3_ppm` bernilai `null` bila sensor gagal (`temp_ok`/`nh3_ok`
+bernilai `false`). `uptime` dalam detik.
 
 **Event lokal** (mis. safety cutoff)
 ```json
@@ -33,10 +35,18 @@ Semua stempel waktu memakai ISO-8601 UTC. Semua payload JSON.
 
 **Perintah**
 ```json
-{"type":"cmd","id":"c1f2...","action":"valve_open","args":{},"ts":"2026-10-08T10:00:00Z"}
+{"type":"cmd","id":"c1f2...","action":"valve_open","args":{},"expires_epoch":1791453665}
 ```
 `action`: `valve_open` | `valve_close` | `heater_on` | `heater_off` |
-`heater_auto` | `set_config`.
+`heater_auto`. Untuk `heater_on`, `args` berisi `duration_min`.
+
+Catatan:
+- Konfigurasi **bukan** perintah. Server mengirim `config` melalui respons
+  `POST /api/iot/ingest`; ESP meneruskannya ke Mega sebagai frame `config`.
+  (Versi lama menyebut `set_config` — **tidak dipakai**.)
+- ESP menyertakan `expires_epoch` (epoch detik UTC) agar Mega yang tidak punya
+  RTC tetap dapat mengabaikan perintah kedaluwarsa. Server juga sudah tidak
+  mengirim perintah `pending` yang lewat TTL.
 
 **Konfigurasi**
 ```json
@@ -113,6 +123,9 @@ Catatan:
   `sent` saat dikirim.
 - `poll_after_sec` memungkinkan server mempercepat/memperlambat polling.
 - Server mengembalikan `config` agar perangkat selalu sinkron.
+- `ts` dari perangkat bersifat **informasional**; server memakai waktu terimanya
+  (UTC) untuk `last_seen_at`, penyimpanan `telemetry_raw`, dan penjadwalan
+  sampling. Stempel waktu yang dipakai untuk penanggalan tetap waktu server.
 
 ### Kode Status
 | Status | Arti |

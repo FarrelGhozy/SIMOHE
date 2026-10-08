@@ -64,13 +64,26 @@ flutter test integration_test
 ```
 
 ## 4. Firmware
-### Bench (per komponen)
+### Unit (host, tanpa hardware)
+Logika murni diuji dengan Unity lewat PlatformIO `native`:
+```bash
+cd firmware/mega/simohe_mega && pio test -e native
+cd firmware/esp8266/simohe_esp && pio test -e native
+```
+Cakupan: heater/safety/hysteresis, auto-close katup, kematangan, konversi
+Rs→ppm, filter rata-rata, encode/decode JSON frame, parser respons server,
+buffer offline, backoff, dan format waktu ISO-8601 UTC.
+
+Kompilasi kedua target juga menjadi gerbang: `pio run -e mega`,
+`pio run -e esp`.
+
+### Bench (per komponen) — butuh hardware, Fase 6
 - DS18B20: bandingkan dengan termometer referensi (±0.5 °C).
 - MQ-137: preheat, kalibrasi R0, cek tren terhadap gas uji (opsional).
 - Relay: verifikasi K1/K2 menyala sesuai perintah, idle = OFF.
 - Serial Mega↔ESP: kirim/terima frame JSON valid, tangani baris rusak.
 
-### HIL (terintegrasi)
+### HIL (terintegrasi) — Fase 6
 Checklist:
 - [ ] Telemetry muncul di server tiap interval.
 - [ ] Heater nyala saat suhu < min, mati saat ≥ min+hyst.
@@ -159,3 +172,32 @@ Server + simulator + Flutter web berjalan bersamaan. Diverifikasi:
 - Server mengabaikan **kode event perangkat tak dikenal** (sebelumnya keliru
   menjadi `safety_cutoff`).
 - Aplikasi menambah **polling status perintah** (5 detik).
+
+## 10. Hasil Uji Fase 5 (Firmware, tanpa hardware)
+Firmware dibangun dan diuji tanpa perangkat keras memakai PlatformIO.
+
+### Perintah
+```bash
+cd firmware/mega/simohe_mega
+pio test -e native        # 14 test: logika, gas, codec, waktu
+pio run  -e mega          # kompilasi AVR (megaatmega2560)
+
+cd firmware/esp8266/simohe_esp
+pio test -e native        # 8 test: backoff, buffer, respons, ingest, waktu
+pio run  -e esp           # kompilasi ESP8266 (nodemcuv2)
+```
+
+| Tahap | Hasil |
+|---|---|
+| Unit test Mega (`simohe_core`) | 14 lulus |
+| Unit test ESP (`simohe_esp_core`) | 8 lulus |
+| Build Mega | sukses (Flash 9.3%, RAM 19.2%) |
+| Build ESP | sukses (Flash 38.8%, RAM 50%) |
+
+Cakupan: state machine heater + safety (temp high, heater max-on, fail-safe
+sensor), auto-close katup, kematangan, Rs→ppm MQ-137, filter rata-rata,
+encode/decode frame, parser respons ingest, buffer offline + backoff, dan
+format waktu ISO-8601 UTC.
+
+**Status: lulus.** Bench per komponen & HIL (fase 6) menunggu hardware.
+

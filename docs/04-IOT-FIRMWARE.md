@@ -9,27 +9,69 @@
 Pendekatan ini menjaga Mega tetap realtime (tidak terganggu WiFi) dan
 memisahkan tanggung jawab dengan jelas.
 
-## Struktur Kode (rencana)
+## Struktur Kode
+Dibangun dengan **PlatformIO** (tetap kompatibel Arduino IDE untuk berkas `.ino`).
+Logika murni ditaruh di pustaka bersama `common/simohe_core` agar dapat diuji di
+host tanpa hardware.
+
 ```
 firmware/
+├── common/
+│   └── simohe_core/                 # pustaka logika bersama (Mega + ESP)
+│       └── src/
+│           ├── protocol.h/.cpp      # struct & enum protokol
+│           ├── logic.h/.cpp         # state machine heater/katup/kematangan
+│           ├── gas.h/.cpp           # Rs->ppm MQ-137 + filter rata-rata
+│           ├── codec.h/.cpp         # encode/decode JSON frame
+│           ├── time_parse.h/.cpp    # parse/format ISO-8601 UTC
+│           └── simohe_core.h
 ├── mega/
 │   └── simohe_mega/
-│       ├── simohe_mega.ino        # setup/loop
-│       ├── config.h               # pin, konstanta, default threshold
-│       ├── sensors.h/.cpp         # DS18B20, MQ-137 (Rs/R0 -> ppm)
-│       ├── actuators.h/.cpp       # relay katup & heater + safety
-│       ├── logic.h/.cpp           # state machine suhu/kematangan
-│       └── bridge.h/.cpp          # protokol Serial ke ESP
+│       ├── platformio.ini
+│       ├── src/
+│       │   ├── main.ino             # setup/loop non-blocking
+│       │   ├── config.h             # pin, konstanta, default threshold
+│       │   ├── sensors.h/.cpp       # DS18B20 + MQ-137
+│       │   ├── actuators.h/.cpp     # relay katup & heater + safety
+│       │   ├── config_store.h/.cpp  # EEPROM (config + R0)
+│       │   └── bridge.h/.cpp        # protokol Serial2 ke ESP
+│       └── test/test_logic/         # unit test native (Unity)
 └── esp8266/
     └── simohe_esp/
-        ├── simohe_esp.ino         # WiFi + HTTP client
-        ├── config.h               # WiFi, base URL, device key, interval
-        └── serial_bridge.h/.cpp   # parse JSON Serial <-> HTTP payload
+        ├── platformio.ini
+        ├── lib/simohe_esp_core/     # backoff, buffer offline, parser respons, ingest
+        ├── src/
+        │   ├── main.ino             # WiFi + HTTP client
+        │   ├── config.h             # interval, pin LED, ukuran buffer
+        │   ├── secrets.example.h    # salin ke secrets.h (gitignored)
+        │   ├── credentials.h
+        │   ├── wifi_manager.h/.cpp  # koneksi + backoff
+        │   ├── api_client.h/.cpp    # HTTP ingest
+        │   └── serial_bridge.h/.cpp # JSON Serial <-> HTTP payload
+        └── test/test_logic/
 ```
 
+### Rahasia/Kredensial
+SSID/password WiFi, `server_base_url`, dan `device_key` **tidak** disimpan di
+repo. Salin `firmware/esp8266/simohe_esp/src/secrets.example.h` menjadi
+`secrets.h` lalu isi nilainya. `secrets.h` sudah masuk `.gitignore`;
+`credentials.h` otomatis memakai `secrets.h` bila ada, jika tidak akan jatuh ke
+`secrets.example.h` (nilai contoh) agar tetap dapat dikompilasi.
+
+## Build & Flash (PlatformIO)
+```bash
+cd firmware/mega/simohe_mega && pio run -e mega            # kompilasi Mega
+cd firmware/esp8266/simohe_esp && pio run -e esp           # kompilasi ESP
+pio run -e mega -t upload                                  # flash (hardware)
+pio run -e esp -t upload
+```
+Board Mega memakai `megaatmega2560`; ESP memakai `nodemcuv2` (sesuaikan bila
+board berbeda, mis. varian Flash lebih kecil).
+
 ## Library
-- Mega: `OneWire`, `DallasTemperature`, `ArduinoJson`.
-- ESP8266: `ESP8266WiFi`, `ESP8266HTTPClient`, `ArduinoJson`.
+- Mega: `OneWire`, `DallasTemperature`, `ArduinoJson` (v6).
+- ESP8266: `ESP8266WiFi`, `ESP8266HTTPClient`, `ArduinoJson` (v6).
+- Bersama: `common/simohe_core` (logika, codec, gas, waktu).
 
 ## Sensor Suhu — DS18B20
 - Bus OneWire di pin 2, pull-up 4.7 kΩ.
@@ -142,7 +184,15 @@ stateDiagram-v2
 5. Perintah yang melewati TTL dianggap `expired` dan diabaikan.
 
 ## Pengujian Firmware
-- Tahap awal tanpa hardware: uji logika lewat **device simulator**
-  (`13-TESTING.md`).
-- Tahap hardware: uji bench per sensor, lalu uji terintegrasi (lihat checklist
-  HIL di `13-TESTING.md`).
+Firmware diuji **tanpa hardware** melalui dua lapis:
+1. **Kompilasi** kedua target PlatformIO (`pio run -e mega`, `pio run -e esp`).
+2. **Unit test logika di host** (`pio test -e native`), memakai Unity dan
+   ArduinoJson di `common/simohe_core` + `simohe_esp_core`. Cakupan: state
+   machine heater/safety, auto-close katup, kematangan, konversi Rs→ppm,
+   filter rata-rata, encode/decode JSON, parser respons, buffer offline, dan
+   backoff.
+
+Pengujian **bench per komponen** dan **HIL** (DS18B20 vs termometer, kalibrasi
+MQ-137, relay, Serial Mega↔ESP, fail-safe) memerlukan hardware dan dilakukan di
+**Fase 6** (lihat checklist HIL di `13-TESTING.md`). Device simulator
+(`server/tools/simulator/`) tetap dipakai untuk menguji server & aplikasi.

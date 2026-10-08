@@ -86,9 +86,14 @@ bun run db:generate
 bun run db:migrate
 ```
 
-### Firmware (setelah dibuat)
-- Buka `firmware/mega/simohe_mega/` dan `firmware/esp8266/simohe_esp/` di
-  Arduino IDE / PlatformIO, sesuaikan config, upload.
+### Firmware
+```bash
+cd firmware/mega/simohe_mega && pio test -e native && pio run -e mega
+cd firmware/esp8266/simohe_esp && pio test -e native && pio run -e esp
+# flash ke hardware (Fase 6): pio run -e mega -t upload / pio run -e esp -t upload
+```
+Salin `firmware/esp8266/simohe_esp/src/secrets.example.h` → `secrets.h` lalu isi
+kredensial (tidak di-commit). Bisa juga dibuka di Arduino IDE / PlatformIO.
 
 ## Konvensi Kode
 - **Dart/Flutter**: ikuti `flutter_lints`; jalankan `flutter analyze` sebelum

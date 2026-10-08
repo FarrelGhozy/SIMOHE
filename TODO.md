@@ -98,25 +98,27 @@ Legenda prioritas: `P0` wajib, `P1` penting, `P2` opsional.
 
 ---
 
-## Fase 5 — Firmware IoT `P0`
-- [ ] Struktur `firmware/mega/simohe_mega/`
-- [ ] Driver DS18B20 (OneWire + filter)
-- [ ] Driver MQ-137 (Rs/R0 → ppm) + kalibrasi R0 + EEPROM
-- [ ] Aktuator relay K1/K2 + safety
-- [ ] State machine `docs/09` (non-blocking `millis()`)
-- [ ] Bridge Serial JSON ke ESP
-- [ ] Struktur `firmware/esp8266/simohe_esp/`
-- [ ] WiFi + HTTP client (ingest)
-- [ ] Parser commands + ack
-- [ ] Buffer offline + backoff reconnect
-- [ ] Watchdog
-- [ ] Bench test per komponen
+## Fase 5 — Firmware IoT `[selesai]` `P0`
+- [x] Struktur `firmware/mega/simohe_mega/`
+- [x] Driver DS18B20 (OneWire + filter)
+- [x] Driver MQ-137 (Rs/R0 → ppm) + kalibrasi R0 + EEPROM
+- [x] Aktuator relay K1/K2 + safety
+- [x] State machine `docs/09` (non-blocking `millis()`)
+- [x] Bridge Serial JSON ke ESP
+- [x] Struktur `firmware/esp8266/simohe_esp/`
+- [x] WiFi + HTTP client (ingest)
+- [x] Parser commands + ack
+- [x] Buffer offline + backoff reconnect
+- [x] Watchdog
+- [x] Unit test logika host (`pio test -e native`) + build kedua target
+- [ ] Bench test per komponen → dipindah ke Fase 6 (butuh hardware)
 
 ---
 
 ## Fase 6 — Hardware & HIL `P0`
 - [ ] Perakitan wiring sesuai `docs/03`
 - [ ] Proteksi daya (fuse, flyback diode)
+- [ ] Bench test per komponen (DS18B20, MQ-137, relay, Serial Mega↔ESP)
 - [ ] Kalibrasi DS18B20 vs termometer referensi
 - [ ] Kalibrasi MQ-137 (preheat 24–48 jam, R0)
 - [ ] Checklist HIL `docs/13` tercentang
