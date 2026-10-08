@@ -28,15 +28,19 @@ bun run typecheck
 ```
 
 ## 2. Device Simulator (kunci pengembangan awal)
-Script yang meniru ESP untuk menguji server & aplikasi tanpa hardware:
+Script yang meniru ESP untuk menguji server & aplikasi tanpa hardware
+(`server/tools/simulator/`). Dijalankan dengan `bun run sim`:
+```bash
+bun run sim -- --device-key <KEY>                         # skenario normal
+bun run sim -- --device-key <KEY> --scenario offline      # uji device_offline
+bun run sim -- --device-key <KEY> --scenario overheat     # uji safety_cutoff
+bun run sim -- --device-key <KEY> --autoconfig --app-token <TOKEN>
 ```
-server/tools/simulator.ts
-  - POST /api/iot/ingest tiap 10s dengan skenario:
-      * suhu naik-turun (memicu heater)
-      * NH3 naik pelan (memicu matang setelah hold)
-      * sesekali "offline" untuk uji device_offline
-  - Menerima commands dan mencetak ack
-```
+- Skenario: `normal` (suhu naik-turun memicu heater), `mature` (NH3 naik
+  pelan melewati ambang), `offline` (berhenti mengirim sesaat), `overheat`.
+- Menerapkan `commands` dari respons ingest lalu mengirim `acks`.
+- `--autoconfig` menyetel `history_interval_min`/`mature_hold_min` agar histori
+  dan kematangan cepat terverifikasi.
 Manfaat: aplikasi & server bisa dibangun dan diuji penuh sebelum firmware siap.
 
 ## 3. Aplikasi Flutter

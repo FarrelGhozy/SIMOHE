@@ -177,6 +177,12 @@ Response `201`:
 | `retention` | harian | Hapus `telemetry_raw` lebih lama dari `raw_retention_days` |
 | `command-expiry` | 30s | Tandai command pending yang lewat TTL sebagai `expired` |
 
+Catatan: job dijalankan in-process oleh penjadwal sederhana
+(`src/lib/scheduler.ts`, berbasis `setInterval`) saat `JOBS_ENABLED=true`
+(default). Job bersifat idempoten dan berbasis data DB (tahan restart).
+`sampling` dicek tiap 30s dan hanya menulis bila `history_interval_min`
+terlewati.
+
 ## Telemetry Raw (opsional, big data)
 - Jika `raw_retention_days > 0`, setiap ingest disimpan ke `telemetry_raw`.
 - Jika `0`, tabel raw dilewati (hanya histori tersampling yang disimpan).

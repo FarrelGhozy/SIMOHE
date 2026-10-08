@@ -34,6 +34,7 @@ Dokumentasi API interaktif (dev): http://localhost:3000/api/docs
 | `bun run db:migrate` | Terapkan migrasi |
 | `bun run db:seed` | Seed data awal |
 | `bun run key:hash <key>` | Hitung SHA-256 device key manual |
+| `bun run sim -- --device-key <key>` | Jalankan simulator perangkat |
 
 ## Environment
 Lihat `.env.example`. Kunci: `DATABASE_URL`, `APP_TOKEN`, `APP_CORS_ORIGIN`,
@@ -84,6 +85,38 @@ lain bila perlu (`bucket.ts`, `response.ts`, `ingest.ts`).
 - Aplikasi memakai `Authorization: Bearer <APP_TOKEN>`.
 
 Desain lengkap ada di `../docs/` (mulai `docs/06-BACKEND-API.md`).
+
+## Job Background
+Berjalan di proses server yang sama saat `JOBS_ENABLED=true` (default).
+Penjadwal di `src/lib/scheduler.ts` (berbasis `setInterval`, non-overlap).
+
+| Job | Interval | Tugas |
+|---|---|---|
+| `sampling` | cek 30s | Salin `latest_state` → `sensor_readings` bila jatuh tempo (`history_interval_min`) |
+| `offline-detector` | 30s | Tandai offline + event bila lewat 3× `ingest_interval_sec` |
+| `command-expiry` | 30s | `pending` lewat TTL → `expired` |
+| `retention` | 24 jam | Hapus `telemetry_raw` lebih tua dari `raw_retention_days` |
+
+Set `JOBS_ENABLED=false` untuk mematikan (mis. saat menjalankan test manual).
+
+## Simulator Perangkat
+Meniru Mega + ESP8266 tanpa hardware (`tools/simulator/`). Skenario:
+`normal`, `mature`, `offline`, `overheat`. Simulator menerapkan `commands`
+dari respons ingest dan mengirim `acks` pada ingest berikutnya.
+
+```bash
+# Device key dari output `bun run db:seed` atau DEVICE_KEY di .env
+bun run sim -- --device-key <KEY>
+
+# Uji cepat histori & matang: set history_interval_min=1, mature_hold_min=1
+bun run sim -- --device-key <KEY> --autoconfig --app-token <APP_TOKEN>
+
+# Skenario lain / kirim sekali
+bun run sim -- --device-key <KEY> --scenario offline
+bun run sim -- --device-key <KEY> --once
+```
+Lihat opsi lengkap: `bun run sim -- --help` (tampil saat `--device-key` kosong).
+Amati hasilnya di `GET /api/live`, `GET /api/readings`, dan `GET /api/events`.
 
 ## Testing
 ```bash

@@ -48,14 +48,14 @@ Legenda prioritas: `P0` wajib, `P1` penting, `P2` opsional.
 
 ---
 
-## Fase 2 — Simulator & Job Background `P0`
-- [ ] `server/tools/simulator.ts` (skenario suhu, NH3, offline)
-- [ ] Simulator menerima & meng-ack commands
-- [ ] Job `sampling` (default 15 menit, dari settings)
-- [ ] Job `offline-detector`
-- [ ] Job `command-expiry`
-- [ ] Job `retention` (bersihkan `telemetry_raw`)
-- [ ] Verifikasi histori & event muncul dari simulator
+## Fase 2 — Simulator & Job Background `[selesai]`
+- [x] `server/tools/simulator.ts` (skenario suhu, NH3, offline)
+- [x] Simulator menerima & meng-ack commands
+- [x] Job `sampling` (default 15 menit, dari settings)
+- [x] Job `offline-detector`
+- [x] Job `command-expiry`
+- [x] Job `retention` (bersihkan `telemetry_raw`)
+- [x] Verifikasi histori & event muncul dari simulator
 
 ---
 
