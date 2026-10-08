@@ -16,5 +16,5 @@
     "forceConsistentCasingInFileNames": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "tests", "drizzle.config.ts"]
+  "include": ["src", "tests", "tools", "drizzle.config.ts"]
 }

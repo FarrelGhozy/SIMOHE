@@ -16,7 +16,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:seed": "bun run src/db/seed.ts",
-    "key:hash": "bun run src/db/hash-key.ts"
+    "key:hash": "bun run src/db/hash-key.ts",
+    "sim": "bun run tools/simulator/index.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.2",
