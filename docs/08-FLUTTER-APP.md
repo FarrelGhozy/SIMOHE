@@ -183,3 +183,15 @@ flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:3000 --dart-de
 - Notifikasi lokal (`flutter_local_notifications`) **ditunda** (lihat backlog);
   notifikasi in-app (badge jumlah + daftar event) sudah tersedia.
 
+## Aset & Branding
+- Aset brand berada di `assets/branding/` (emblem, logo full, monochrome) dan
+  `assets/icons/feature/` (9 ikon fitur). Nama aset dipusatkan di
+  `core/theme/brand_colors.dart` (`BrandAssets`).
+- Tema memakai seed hijau brand `#084E34`; palet lengkap di `docs/15-BRANDING.md`.
+- Widget `BrandIcon` menampilkan aset dengan fallback ikon Material; `MetricCard`
+  dan `SectionCard` menerima ikon brand.
+- Ikon aplikasi (Android + web) di-generate via `flutter_launcher_icons`
+  (`dart run flutter_launcher_icons`); splash Android via `flutter_native_splash`
+  (`dart run flutter_native_splash:create`, `web: false`).
+- Sumber ikon launcher/splash ada di `branding/` (tidak ikut di-ship ke bundle).
+

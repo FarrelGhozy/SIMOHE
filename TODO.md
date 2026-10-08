@@ -88,6 +88,16 @@ Legenda prioritas: `P0` wajib, `P1` penting, `P2` opsional.
 
 ---
 
+## Branding & Aset Visual `[selesai]`
+- [x] Dokumentasi brand `docs/15-BRANDING.md` (palet, aturan logo, inventaris)
+- [x] Aset logo & 9 ikon fitur teroptimasi (`assets/`)
+- [x] Tema hijau brand `#084E34` + komponen `BrandIcon`
+- [x] Logo & ikon fitur di UI (dashboard, kontrol, device)
+- [x] Ikon aplikasi Android & web (launcher, favicon, manifest)
+- [x] Splash screen Android (`flutter_native_splash`, web: false)
+
+---
+
 ## Fase 5 — Firmware IoT `P0`
 - [ ] Struktur `firmware/mega/simohe_mega/`
 - [ ] Driver DS18B20 (OneWire + filter)
