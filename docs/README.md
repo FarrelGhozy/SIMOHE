@@ -20,6 +20,7 @@ Arduino Mega & ESP8266).
 13. [12 — Deployment](12-DEPLOYMENT.md)
 14. [13 — Testing Strategy](13-TESTING.md)
 15. [14 — Roadmap](14-ROADMAP.md)
+16. [15 — Branding](15-BRANDING.md)
 
 ## Ringkasan Keputusan
 - Client: **Flutter** (Android + Web sekarang; desktop/iOS nanti).

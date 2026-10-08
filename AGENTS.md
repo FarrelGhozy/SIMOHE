@@ -59,6 +59,7 @@ biarkan menyimpang.
 | Deployment | `docs/12-DEPLOYMENT.md` |
 | Testing | `docs/13-TESTING.md` |
 | Roadmap | `docs/14-ROADMAP.md` |
+| Branding | `docs/15-BRANDING.md` |
 
 ## Perintah Umum
 
