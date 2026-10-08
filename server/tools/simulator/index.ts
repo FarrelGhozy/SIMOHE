@@ -7,7 +7,7 @@ import {
   sendIngest,
 } from './client'
 import { loadConfig } from './config'
-import { applyCommand, computeHeater, createDeviceState } from './device-state'
+import { applyCommand, computeHeater, createDeviceState, enforceValveSafety } from './device-state'
 import { createScenarioState, stepScenario } from './scenario'
 
 function sleep(ms: number): Promise<void> {
@@ -32,6 +32,7 @@ async function main(): Promise<void> {
     tempMaxC: DEFAULT_CONFIG.temp_max_c,
     hysteresisC: DEFAULT_CONFIG.temp_hysteresis_c,
   }
+  let valveMaxOpenMin = DEFAULT_CONFIG.valve_max_open_min
   const pendingAcks: SimAck[] = []
   const startTime = Date.now()
   let overheatReported = false
@@ -47,6 +48,7 @@ async function main(): Promise<void> {
       console.log(`[${stamp()}] (offline simulasi, tidak mengirim)`)
     } else {
       const heater = computeHeater(deviceState, reading.tempC, thresholds, Date.now())
+      const valveClosedBySafety = enforceValveSafety(deviceState, Date.now(), valveMaxOpenMin)
 
       const events: SimEvent[] = []
       if (
@@ -59,6 +61,13 @@ async function main(): Promise<void> {
       }
       if (reading.tempC < thresholds.tempMaxC) {
         overheatReported = false
+      }
+      if (valveClosedBySafety) {
+        events.push({
+          code: 'SAFETY_CUTOFF',
+          detail: 'valve_max_open',
+          ts: new Date().toISOString(),
+        })
       }
 
       const body: IngestBody = {
@@ -84,6 +93,7 @@ async function main(): Promise<void> {
         thresholds.tempMinC = response.config.temp_min_c
         thresholds.tempMaxC = response.config.temp_max_c
         thresholds.hysteresisC = response.config.temp_hysteresis_c
+        valveMaxOpenMin = response.config.valve_max_open_min
 
         const handled: string[] = []
         for (const command of response.commands) {
