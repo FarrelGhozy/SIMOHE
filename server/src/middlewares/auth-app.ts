@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia'
 import { env } from '../env'
-import { AppError } from './error'
+import { getActiveDevice } from '../lib/active-device'
+import { AppError } from '../lib/app-error'
 
 export function verifyAppToken(authorization: string | undefined): void {
   const token = authorization?.startsWith('Bearer ') ? authorization.slice(7).trim() : ''
@@ -11,8 +12,10 @@ export function verifyAppToken(authorization: string | undefined): void {
 
 export const authApp = new Elysia({ name: 'auth-app' }).macro({
   app: {
-    beforeHandle({ headers }) {
+    async resolve({ headers }) {
       verifyAppToken(headers.authorization)
+      const device = await getActiveDevice()
+      return { device }
     },
   },
 })

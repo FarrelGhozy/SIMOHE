@@ -1,17 +1,8 @@
 import { Elysia } from 'elysia'
+import { AppError } from '../lib/app-error'
 import { logger } from '../logger'
 
-export class AppError extends Error {
-  readonly status: number
-  readonly code: string
-
-  constructor(status: number, code: string, message: string) {
-    super(message)
-    this.name = 'AppError'
-    this.status = status
-    this.code = code
-  }
-}
+export { AppError }
 
 interface ErrorBody {
   error: { code: string; message: string }

@@ -1,14 +1,16 @@
 import pino from 'pino'
-import { env, isProduction } from './env'
+import { env } from './env'
+
+const usePretty = env.NODE_ENV === 'development'
 
 export const logger = pino(
-  isProduction
-    ? { level: env.LOG_LEVEL }
-    : {
+  usePretty
+    ? {
         level: env.LOG_LEVEL,
         transport: {
           target: 'pino-pretty',
           options: { colorize: true, translateTime: 'SYS:standard' },
         },
-      },
+      }
+    : { level: env.LOG_LEVEL },
 )
