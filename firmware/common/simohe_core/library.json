@@ -1,0 +1,10 @@
+{
+  "name": "simohe_core",
+  "version": "0.1.0",
+  "description": "Logika bersama firmware SIMOHE: protokol, heater/valve, gas MQ-137, codec JSON, waktu.",
+  "keywords": "simohe, iot, protocol",
+  "build": {
+    "srcDir": "src",
+    "includeDir": "src"
+  }
+}
