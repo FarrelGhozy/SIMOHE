@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { env } from '../env'
-import { logger } from '../logger'
 import { generateDeviceKey, hashDeviceKey } from '../lib/hash'
+import { logger } from '../logger'
 import { db, pool } from './client'
 import { batches, devices, latestState, settings } from './schema'
 
@@ -9,15 +9,15 @@ async function seed(): Promise<void> {
   const plainKey = env.DEVICE_KEY ?? generateDeviceKey()
   const keyHash = hashDeviceKey(plainKey)
 
-  const existingDevice = await db
+  const [existingDevice] = await db
     .select({ id: devices.id })
     .from(devices)
     .where(eq(devices.deviceKey, keyHash))
     .limit(1)
 
   let deviceId: number
-  if (existingDevice[0]) {
-    deviceId = existingDevice[0].id
+  if (existingDevice) {
+    deviceId = existingDevice.id
     logger.info({ deviceId }, 'device sudah ada, melewati pembuatan device')
   } else {
     await db.insert(devices).values({
@@ -25,12 +25,15 @@ async function seed(): Promise<void> {
       deviceKey: keyHash,
       location: env.DEVICE_LOCATION ?? null,
     })
-    const created = await db
+    const [created] = await db
       .select({ id: devices.id })
       .from(devices)
       .where(eq(devices.deviceKey, keyHash))
       .limit(1)
-    deviceId = created[0]!.id
+    if (!created) {
+      throw new Error('Gagal membuat device')
+    }
+    deviceId = created.id
     logger.info({ deviceId }, 'device dibuat')
   }
 

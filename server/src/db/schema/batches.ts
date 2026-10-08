@@ -14,13 +14,8 @@ export const batches = mysqlTable(
     startedAt: datetime('started_at', { mode: 'date' }).notNull(),
     maturedAt: datetime('matured_at', { mode: 'date' }),
     harvestedAt: datetime('harvested_at', { mode: 'date' }),
-    status: varchar('status', { length: 16 })
-      .$type<BatchStatus>()
-      .notNull()
-      .default('fermenting'),
-    createdAt: datetime('created_at', { mode: 'date' })
-      .notNull()
-      .default(sql`CURRENT_TIMESTAMP`),
+    status: varchar('status', { length: 16 }).$type<BatchStatus>().notNull().default('fermenting'),
+    createdAt: datetime('created_at', { mode: 'date' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => [index('idx_batch_device').on(table.deviceId, table.status)],
 )

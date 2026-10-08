@@ -58,7 +58,9 @@ if (!Value.Check(EnvSchema, raw)) {
   const issues = [...Value.Errors(EnvSchema, raw)]
     .map((issue) => `  - ${issue.path}: ${issue.message}`)
     .join('\n')
-  throw new Error(`Konfigurasi environment tidak valid:\n${issues}\n\nSalin server/.env.example ke server/.env`)
+  throw new Error(
+    `Konfigurasi environment tidak valid:\n${issues}\n\nSalin server/.env.example ke server/.env`,
+  )
 }
 
 export const env: Env = raw

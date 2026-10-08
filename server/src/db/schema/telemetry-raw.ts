@@ -1,11 +1,4 @@
-import {
-  bigint,
-  datetime,
-  decimal,
-  index,
-  mysqlTable,
-  tinyint,
-} from 'drizzle-orm/mysql-core'
+import { bigint, datetime, decimal, index, mysqlTable, tinyint } from 'drizzle-orm/mysql-core'
 import { devices } from './devices'
 
 export const telemetryRaw = mysqlTable(

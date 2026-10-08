@@ -9,9 +9,7 @@ export const devices = mysqlTable('devices', {
   firmwareVersion: varchar('firmware_version', { length: 32 }),
   lastSeenAt: datetime('last_seen_at', { mode: 'date' }),
   isOnline: tinyint('is_online').notNull().default(0),
-  createdAt: datetime('created_at', { mode: 'date' })
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: datetime('created_at', { mode: 'date' }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: datetime('updated_at', { mode: 'date' })
     .notNull()
     .default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),

@@ -10,12 +10,8 @@ export const settings = mysqlTable('settings', {
     .references(() => devices.id, { onDelete: 'cascade' }),
   historyIntervalMin: int('history_interval_min').notNull().default(15),
   ingestIntervalSec: int('ingest_interval_sec').notNull().default(10),
-  tempMinC: decimal('temp_min_c', { precision: 5, scale: 2, mode: 'number' })
-    .notNull()
-    .default(30),
-  tempMaxC: decimal('temp_max_c', { precision: 5, scale: 2, mode: 'number' })
-    .notNull()
-    .default(45),
+  tempMinC: decimal('temp_min_c', { precision: 5, scale: 2, mode: 'number' }).notNull().default(30),
+  tempMaxC: decimal('temp_max_c', { precision: 5, scale: 2, mode: 'number' }).notNull().default(45),
   tempHysteresisC: decimal('temp_hysteresis_c', { precision: 5, scale: 2, mode: 'number' })
     .notNull()
     .default(2),
