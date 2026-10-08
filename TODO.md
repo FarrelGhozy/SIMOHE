@@ -79,12 +79,12 @@ Legenda prioritas: `P0` wajib, `P1` penting, `P2` opsional.
 
 ---
 
-## Fase 4 — Integrasi End-to-End (Simulasi) `P0`
-- [ ] Jalankan server + simulator + app bersamaan
-- [ ] Uji T1–T10 pada `docs/13-TESTING.md`
-- [ ] Perbaiki edge case (device offline, command expired, dll)
-- [ ] Uji notifikasi matang tanpa membuka katup otomatis
-- [ ] Uji auto-close katup & safety heater
+## Fase 4 — Integrasi End-to-End (Simulasi) `[selesai]` `P0`
+- [x] Jalankan server + simulator + app bersamaan
+- [x] Uji T1–T10 pada `docs/13-TESTING.md`
+- [x] Perbaiki edge case (device offline, command expired, dll)
+- [x] Uji notifikasi matang tanpa membuka katup otomatis
+- [x] Uji auto-close katup & safety heater
 
 ---
 

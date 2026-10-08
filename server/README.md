@@ -27,6 +27,7 @@ Dokumentasi API interaktif (dev): http://localhost:3000/api/docs
 | `bun run dev` | Jalankan server dengan watch |
 | `bun run start` | Jalankan server produksi |
 | `bun test` | Unit + integration test |
+| `bun run test:e2e` | Matriks e2e T1–T10 via simulator (butuh MySQL test) |
 | `bun run lint` | Biome check |
 | `bun run lint:fix` | Biome check + auto-fix |
 | `bun run typecheck` | `tsc --noEmit` (`strict`) |
@@ -123,6 +124,15 @@ Amati hasilnya di `GET /api/live`, `GET /api/readings`, dan `GET /api/events`.
 bun test                       # semua (butuh MySQL test di port 3307)
 bun test tests/unit            # unit service (tanpa DB)
 bun test tests/integration     # endpoint (pakai DB simohe_test)
+bun run test:e2e               # matriks bisnis T1-T10 via simulator
 ```
 `tests/preload.ts` otomatis membuat & memigrasi database `simohe_test` memakai
 kredensial root dari env test.
+
+## Live Smoke (server + simulator)
+Pastikan server berjalan, lalu:
+```bash
+tools/e2e/smoke.sh normal 20 2      # scenario, durasi detik, interval detik
+```
+Skrip membaca `DEVICE_KEY`/`APP_TOKEN`/`PORT` dari `server/.env`, menjalankan
+simulator sebentar, lalu mencetak `live`, `events`, dan `commands`.

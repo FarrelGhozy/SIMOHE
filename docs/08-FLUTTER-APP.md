@@ -174,7 +174,8 @@ flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:3000 --dart-de
   `@JsonKey`, enum lewat `@JsonValue`); file `.freezed.dart`/`.g.dart`
   di-generate dan ikut di-commit.
 - Polling live tiap 10 detik dan events tiap 30 detik via `Timer.periodic`
-  di dalam notifier Riverpod; timer dibatalkan saat provider dispose.
+  di dalam notifier Riverpod; status perintah (pending→sent→acked) di-poll tiap
+  5 detik. Timer dibatalkan saat provider dispose.
 - Cache offline hanya untuk nilai `live` (`shared_preferences`), dipakai bila
   request gagal karena jaringan.
 - Ekspor CSV memakai `package:web` di web dan melempar `UnsupportedError` di

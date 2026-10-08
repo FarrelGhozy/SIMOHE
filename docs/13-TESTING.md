@@ -111,3 +111,51 @@ curl http://localhost:3000/api/live -H 'Authorization: Bearer APPT0KEN'
 - `flutter analyze` bersih, widget test lulus.
 - Checklist HIL tercentang pada hardware nyata.
 - Tidak ada rahasia di repo.
+
+## 9. Hasil Uji Fase 4 (Simulasi)
+Diuji tanpa hardware memakai server + simulator, plus aplikasi Flutter web.
+
+### Perintah
+```bash
+cd server
+bun test            # unit + integration + e2e (56 test)
+bun run test:e2e    # khusus matriks T1–T10 (8 test)
+
+# live smoke (server + simulator). Lihat tools/e2e/smoke.sh
+./tools/e2e/smoke.sh normal 20 2
+```
+Aplikasi: `flutter run -d chrome --web-port 8080 \
+  --dart-define=API_BASE_URL=http://localhost:3000 \
+  --dart-define=APP_TOKEN=<APP_TOKEN>`.
+
+### Matriks T1–T10
+| ID | Skenario | Hasil | Bukti |
+|---|---|---|---|
+| T1 | suhu 27 °C | heater ON + event `temp_low` | `tests/e2e/matrix.test.ts`, smoke normal |
+| T2 | suhu 36 °C | heater OFF + event `heater_off` | e2e |
+| T3 | suhu 46 °C | heater OFF, event `temp_high` + `safety_cutoff` | e2e (skenario overheat) |
+| T4 | NH3 26 ppm ~29 menit | belum matang (progress < 1) | e2e (elapsed disimulasi) |
+| T5 | NH3 26 ppm ≥ 31 menit | event `mature`, katup tetap tertutup, batch `mature` | e2e |
+| T6 | POST `valve_open` | `pending` → `sent` → `acked` | e2e + UI live (Kontrol) |
+| T7 | command lewat TTL | `expired`, tidak dikirim saat ingest | e2e |
+| T8 | katup buka > `valve_max_open_min` | auto-close + event `safety_cutoff` | e2e (safety simulator) |
+| T9 | tanpa ingest > 3× interval | event `device_offline` | e2e |
+| T10 | ingest kembali | event `device_online` | e2e |
+
+**Status: lulus** (8 test e2e, 0 gagal; 56 test server total).
+
+### Verifikasi Aplikasi (live smoke)
+Server + simulator + Flutter web berjalan bersamaan. Diverifikasi:
+- **Dashboard**: metrik live (suhu, NH3), status, kematangan, kontrol cepat, tren 24 jam.
+- **History**: rentang, grafik suhu/NH3, ringkasan min/max/avg, ekspor CSV.
+- **Control**: dialog konfirmasi + info safety; buka/tutup katup ter-`acked`
+  otomatis (polling status perintah); heater AUTO/ON/OFF.
+- **Notifications**: daftar event (matang, suhu, offline, katup) + filter & tandai dibaca.
+- **Settings**: nilai dari server; **Device**: status, firmware, last_seen, siklus.
+- Aturan keras dipenuhi: saat `mature` katup **tetap tertutup** (hanya manual).
+
+### Perbaikan selama Fase 4
+- Simulator mengimplementasikan **auto-close katup** (T8).
+- Server mengabaikan **kode event perangkat tak dikenal** (sebelumnya keliru
+  menjadi `safety_cutoff`).
+- Aplikasi menambah **polling status perintah** (5 detik).
