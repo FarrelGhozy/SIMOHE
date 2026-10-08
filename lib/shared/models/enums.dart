@@ -116,6 +116,24 @@ extension DeviceStatusLabel on DeviceStatus {
       };
 }
 
+extension CommandActionWire on CommandAction {
+  String get wireValue => switch (this) {
+        CommandAction.valveOpen => 'valve_open',
+        CommandAction.valveClose => 'valve_close',
+        CommandAction.heaterOn => 'heater_on',
+        CommandAction.heaterOff => 'heater_off',
+        CommandAction.heaterAuto => 'heater_auto',
+      };
+}
+
+extension ReadingBucketWire on ReadingBucket {
+  String get wireValue => switch (this) {
+        ReadingBucket.raw => 'raw',
+        ReadingBucket.m15 => '15m',
+        ReadingBucket.h1 => '1h',
+      };
+}
+
 extension CommandActionLabel on CommandAction {
   String get label => switch (this) {
         CommandAction.valveOpen => 'Buka katup',
