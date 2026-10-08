@@ -15,6 +15,14 @@ StatusTone toneForSeverity(EventSeverity severity) => switch (severity) {
       EventSeverity.critical => StatusTone.danger,
     };
 
+StatusTone toneForCommandStatus(CommandStatus status) => switch (status) {
+      CommandStatus.pending => StatusTone.warning,
+      CommandStatus.sent => StatusTone.info,
+      CommandStatus.acked => StatusTone.normal,
+      CommandStatus.failed => StatusTone.danger,
+      CommandStatus.expired => StatusTone.offline,
+    };
+
 StatusTone toneForTemp(double? temp, double min, double max) {
   if (temp == null) return StatusTone.offline;
   if (temp >= max) return StatusTone.danger;
