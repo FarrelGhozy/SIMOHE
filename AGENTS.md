@@ -94,6 +94,10 @@ bun run db:migrate
   selesai. Struktur per fitur `data/domain/presentation`.
 - **TypeScript/Bun**: `strict`; validasi input di boundary; format error
   seragam `{ error: { code, message } }`.
+- **Jangan menumpuk kode besar dalam satu berkas**: pecah per tugas/domain.
+  `index.ts` hanya merakit route; logika ke `service.ts`, skema ke `schema.ts`,
+  mapper ke `response.ts`. Bila berkas membesar, pecah lagi jadi sub-berkas per
+  tugas. Utilitas bersama ke `lib/`. Lihat `server/README.md` untuk detail.
 - **Nama file Dart**: `snake_case.dart`; kelas `PascalCase`.
 - **Tidak menambah komentar** yang menjelaskan hal obvious; dokumentasi desain
   ditulis di `docs/`, bukan tumpukan komentar.

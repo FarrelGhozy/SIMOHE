@@ -17,7 +17,7 @@ server/
 │   ├── env.ts                   # validasi & muat environment
 │   ├── db/
 │   │   ├── client.ts            # koneksi mysql2 + drizzle
-│   │   └── schema.ts            # definisi tabel (lihat 07)
+│   │   └── schema/              # definisi tabel (1 file per tabel) + index.ts
 │   ├── middlewares/
 │   │   ├── auth-app.ts          # Bearer token
 │   │   ├── auth-device.ts       # X-Device-Key
@@ -189,3 +189,23 @@ Response `201`:
 
 ## Dokumentasi API
 - Sediakan skema OpenAPI (Elysia `swagger` plugin) di `/api/docs` saat dev.
+
+## Catatan Implementasi (Fase 1)
+Shape respons aktual yang menyempurnakan kontrak di atas:
+- `GET /api/live` menambah `device.location`, `state.temp_ok`, dan
+  `maturity.streak_sec`.
+- `GET /api/readings` → `{ bucket, from, to, items }`.
+  - `raw` diambil dari `telemetry_raw`; `15m` dari `sensor_readings`;
+    `1h` agregasi `sensor_readings` per jam (`AVG` suhu/NH3, `MAX` aktuator).
+- `GET /api/summary` → `{ from, to, range_count, temp_c:{min,max,avg},
+  nh3_ppm:{min,max,avg} }`.
+- `GET /api/events` → `{ items, unread_count }`.
+- `GET /api/commands` mengembalikan array objek command lengkap
+  (`args`, `created_at`, `sent_at`, `acked_at`, `expires_at`).
+- `POST /api/commands/:id/cancel` menyetel status `expired` dan menolak (`409`)
+  bila command tidak lagi `pending`.
+- Ingest menyimpan progres kematangan di `latest_state.mature_streak_sec`
+  (lihat `docs/09`); gap data > 3× `ingest_interval_sec` mereset streak.
+- Event `SAFETY_CUTOFF` dari perangkat dipetakan ke event `safety_cutoff`.
+- Rate limit dikonfigurasi `RATE_LIMIT_INGEST_PER_SEC` (per device) dan
+  `RATE_LIMIT_APP_PER_SEC` (per token) di `.env`.

@@ -36,6 +36,9 @@ jika progress >= 1.0 dan status != 'mature':
 - **Katup TIDAK dibuka otomatis** saat matang. Operator harus membukanya dari
   aplikasi.
 - `mature_streak` di-reset bila NH3 turun di bawah ambang (harus berkelanjutan).
+- `mature_streak` disimpan persisten di `latest_state.mature_streak_sec`.
+  Bila jeda antar-ingest melebihi **3× `ingest_interval_sec`** (perangkat
+  offline), streak direset karena kontinuitas data terputus.
 - Hasil tetap dilaporkan sebagai `maturity.progress` (0..1) ke aplikasi sehingga
   operator melihat "seberapa dekat" ke matang.
 

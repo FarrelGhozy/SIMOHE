@@ -20,31 +20,31 @@ Legenda prioritas: `P0` wajib, `P1` penting, `P2` opsional.
 
 ---
 
-## Fase 1 — Backend Inti (Bun + Elysia + MySQL) `P0`
-- [ ] Inisialisasi `server/` (package.json, tsconfig strict, Elysia)
-- [ ] Setup `.env.example` + loader env + validasi
-- [ ] Setup Drizzle + `mysql2` + `drizzle.config.ts`
-- [ ] Tulis skema `db/schema.ts` sesuai `docs/07`
-- [ ] Generate & jalankan migrasi (`db:generate`, `db:migrate`)
-- [ ] Seed device + `settings` + batch awal
-- [ ] Middleware auth device (`X-Device-Key`) & app (`Bearer`)
-- [ ] Middleware error seragam `{ error: { code, message } }`
-- [ ] Endpoint `GET /api/health`
-- [ ] Endpoint `POST /api/iot/ingest` (+ config/commands response)
-- [ ] Endpoint `GET /api/live`
-- [ ] Endpoint `GET /api/readings` (raw & agregasi)
-- [ ] Endpoint `GET/PUT /api/settings`
-- [ ] Endpoint `POST /api/commands` + `GET /api/commands` + cancel
-- [ ] Endpoint `GET /api/events` + read/read-all
-- [ ] Endpoint `GET /api/summary`, `GET /api/device`, `/api/batches`
-- [ ] Service `maturity.ts` (lihat `docs/09`)
-- [ ] Service `thermal.ts`
-- [ ] Service `command.ts` (TTL & status)
-- [ ] Service `event.ts` (dedup per transisi)
-- [ ] Swagger/OpenAPI di `/api/docs` (dev)
-- [ ] Rate limit + CORS
-- [ ] Unit test service + integration test endpoint
-- [ ] `bun test`, `bun run lint`, `bun run typecheck` lulus
+## Fase 1 — Backend Inti (Bun + Elysia + MySQL) `[selesai]`
+- [x] Inisialisasi `server/` (package.json, tsconfig strict, Elysia)
+- [x] Setup `.env.example` + loader env + validasi
+- [x] Setup Drizzle + `mysql2` + `drizzle.config.ts`
+- [x] Tulis skema `db/schema.ts` sesuai `docs/07`
+- [x] Generate & jalankan migrasi (`db:generate`, `db:migrate`)
+- [x] Seed device + `settings` + batch awal
+- [x] Middleware auth device (`X-Device-Key`) & app (`Bearer`)
+- [x] Middleware error seragam `{ error: { code, message } }`
+- [x] Endpoint `GET /api/health`
+- [x] Endpoint `POST /api/iot/ingest` (+ config/commands response)
+- [x] Endpoint `GET /api/live`
+- [x] Endpoint `GET /api/readings` (raw & agregasi)
+- [x] Endpoint `GET/PUT /api/settings`
+- [x] Endpoint `POST /api/commands` + `GET /api/commands` + cancel
+- [x] Endpoint `GET /api/events` + read/read-all
+- [x] Endpoint `GET /api/summary`, `GET /api/device`, `/api/batches`
+- [x] Service `maturity.ts` (lihat `docs/09`)
+- [x] Service `thermal.ts`
+- [x] Service `command.ts` (TTL & status)
+- [x] Service `event.ts` (dedup per transisi)
+- [x] Swagger/OpenAPI di `/api/docs` (dev)
+- [x] Rate limit + CORS
+- [x] Unit test service + integration test endpoint
+- [x] `bun test`, `bun run lint`, `bun run typecheck` lulus
 
 ---
 
