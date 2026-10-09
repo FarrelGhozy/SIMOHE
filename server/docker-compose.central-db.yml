@@ -1,0 +1,10 @@
+services:
+  mysql:
+    profiles: ["local-db"]
+
+  server:
+    depends_on: !reset {}
+    environment:
+      DATABASE_URL: ${CENTRAL_DATABASE_URL:?Set CENTRAL_DATABASE_URL di .env untuk mode database terpusat}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

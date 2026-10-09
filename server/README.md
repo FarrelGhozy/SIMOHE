@@ -6,11 +6,74 @@ Backend **SIMOHE** — Bun + TypeScript + Elysia + Drizzle ORM + MySQL 8.
 - [Bun](https://bun.sh) >= 1.1
 - Docker (untuk MySQL lokal) atau MySQL 8 yang sudah ada
 
-## Menjalankan (dev)
+## Menjalankan (Docker — server + database sekaligus)
+```bash
+cd server
+cp .env.example .env          # sesuaikan (APP_TOKEN, DEVICE_KEY, dll)
+
+# Build + jalankan MySQL & server sebagai daemon
+docker compose up --build -d
+```
+`docker compose up --build -d` menyalakan **MySQL + server** sekaligus. Kedua
+container memakai `restart: always`, jadi otomatis hidup lagi setelah komputer
+host reboot (pastikan service Docker aktif saat boot). Container server
+menunggu MySQL sehat, menerapkan migrasi, lalu menjalankan server. Seed device
+otomatis dijalankan bila `DEVICE_KEY` diisi di `.env` (idempoten).
+
+Semua pengaturan Docker diatur lewat `.env` (bukan hardcode di compose):
+
+| Variabel | Default | Fungsi |
+|---|---|---|
+| `DOCKER_SERVER_HOST_PORT` | `3001` | Port host untuk container server |
+| `DOCKER_MYSQL_HOST_PORT` | `3307` | Port host untuk container MySQL |
+| `DOCKER_DATABASE_URL` | `mysql://simohe:simohe@mysql:3306/simohe` | URL DB dari dalam jaringan Docker |
+| `PORT` | `3000` | Port server di dalam container |
+| `RUN_SEED` | `true` | Seed otomatis saat start (bila `DEVICE_KEY` diisi) |
+
+`DOCKER_SERVER_HOST_PORT` sengaja dibedakan dari `PORT` agar Docker tidak
+bentrok dengan dev lokal (`bun run dev`) di port 3000.
+
+Menyalakan/mengelola per container:
+```bash
+docker compose up -d mysql          # hanya database
+docker compose up -d server         # hanya server (mysql ikut bila belum jalan)
+docker compose logs -f server       # lihat log server (termasuk device key seed)
+docker compose exec server bun run db:seed   # seed manual (cetak device key)
+docker compose restart server       # restart server saja
+docker compose down                 # hentikan semua (data MySQL tetap di volume)
+```
+Karena default host port server `3001`, akses server Docker di
+http://localhost:3001 (bukan 3000).
+
+## Menjalankan dengan Database Terpusat (MySQL bersama aplikasi lain)
+Bila MySQL tidak dijalankan sebagai container bawaan, melainkan di komputer
+server (bersama aplikasi lain), pakai override `docker-compose.central-db.yml`.
+Service `mysql` dinonaktifkan dan `server` terhubung ke `CENTRAL_DATABASE_URL`.
+
+1. Di komputer MySQL, siapkan DB + user (ganti password di file dulu):
+   ```bash
+   mysql -u root -p < tools/db/central-setup.sql
+   ```
+2. Isi `.env`:
+   ```
+   # MySQL di komputer lain:
+   CENTRAL_DATABASE_URL=mysql://simohe_app:PASSWORD@192.168.1.10:3306/simohe
+   # atau MySQL di komputer yang sama dengan container:
+   CENTRAL_DATABASE_URL=mysql://simohe_app:PASSWORD@host.docker.internal:3306/simohe
+   ```
+3. Jalankan server saja (tanpa MySQL bawaan):
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.central-db.yml up -d --build server
+   ```
+Migrasi & seed tetap berjalan otomatis saat start. Detail lengkap (konfigurasi
+`bind-address`, timezone UTC, firewall, backup) ada di
+`../docs/12-DEPLOYMENT.md` bagian **Database Terpusat**.
+
+## Menjalankan (dev tanpa Docker untuk server)
 ```bash
 cd server
 cp .env.example .env          # sesuaikan bila perlu
-docker compose up -d          # MySQL 8.4 di port 3307
+docker compose up -d mysql    # MySQL 8.4 di port 3307
 bun install
 bun run db:migrate            # terapkan migrasi
 bun run db:seed               # device + settings + batch awal
@@ -40,7 +103,8 @@ Dokumentasi API interaktif (dev): http://localhost:3000/api/docs
 ## Environment
 Lihat `.env.example`. Kunci: `DATABASE_URL`, `APP_TOKEN`, `APP_CORS_ORIGIN`,
 `DEVICE_KEY` (seed), `RATE_LIMIT_INGEST_PER_SEC`, `RATE_LIMIT_APP_PER_SEC`.
-Semua waktu **UTC**.
+Pengaturan Docker: `DOCKER_SERVER_HOST_PORT`, `DOCKER_MYSQL_HOST_PORT`,
+`DOCKER_DATABASE_URL`, `RUN_SEED`. Semua waktu **UTC**.
 
 ## Struktur
 ```
