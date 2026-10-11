@@ -17,7 +17,7 @@ flowchart TB
     subgraph VPS["VPS / Server"]
       Caddy["Caddy / Nginx (TLS, reverse proxy)"]
       API["Container: Bun + Elysia"]
-      DB[("Container: MySQL 8 (volume)")]
+      DB[("MySQL 8 (host, tanpa container)")]
       Caddy --> API
       API --> DB
     end
@@ -28,149 +28,135 @@ flowchart TB
 ## Docker Compose (rencana)
 ```
 server/
-├── docker-compose.yml                  # mysql + server (all-in-one)
-├── docker-compose.central-db.yml       # override: pakai MySQL terpusat
+├── docker-compose.yml                  # server saja (MySQL di host)
 ├── Dockerfile                          # image Bun untuk Elysia
 ├── docker-entrypoint.sh                # migrasi → seed → start
-├── tools/db/central-setup.sql          # setup DB/user di MySQL terpusat
+├── tools/db/setup.sql                  # setup DB/user di MySQL host
 ├── Caddyfile                           # reverse proxy + TLS
 ├── .env                                # rahasia (tidak di-commit)
 └── .env.example
 ```
 
 Isi `docker-compose.yml` (ringkas):
-- `mysql`: image `mysql:8.4`, volume persisten, user non-root, DB `simohe`.
-- `server`: build dari `Dockerfile`, `depends_on: mysql` (sehat), memuat
-  `.env`; migrasi otomatis saat start.
-- `caddy`: expose 80/443, reverse proxy ke `server`, TLS otomatis.
+- `server`: build dari `Dockerfile`, memakai **jaringan host**
+  (`network_mode: host`) dan memuat `.env`; `DATABASE_URL` menunjuk MySQL lokal
+  `127.0.0.1:3306`; migrasi otomatis saat start.
+- `caddy`: expose 80/443, reverse proxy ke server, TLS otomatis (rencana).
+- **Tidak ada service `mysql`** — MySQL dijalankan langsung di host.
 
 `Dockerfile` (ringkas): base `oven/bun`, install dependensi. Entrypoint
-(`docker-entrypoint.sh`) menunggu MySQL sehat, menjalankan migrasi, seed device
-bila `DEVICE_KEY` diisi, lalu `bun run start`. Kedua service
-(`mysql`, `server`) memakai `restart: always` sehingga otomatis hidup lagi
-setelah host reboot.
+(`docker-entrypoint.sh`) menunggu MySQL siap, menjalankan migrasi, seed device
+bila `DEVICE_KEY` diisi, lalu `bun run start`. Service `server` memakai
+`restart: always` sehingga otomatis hidup lagi setelah host reboot.
 
 ## Environment (`.env.example`)
 ```
 NODE_ENV=production
 PORT=3000
-DATABASE_URL=mysql://simohe_user:password@mysql:3306/simohe
+DATABASE_URL=mysql://simohe_app:password@127.0.0.1:3306/simohe
 APP_TOKEN=change-me-strong-token
 APP_CORS_ORIGIN=https://app.example.com
 INGEST_RATE_LIMIT_PER_SEC=1
 TZ=UTC
 
-# Docker (semua pengaturan container diatur dari sini)
-DOCKER_SERVER_HOST_PORT=3001          # port host container server
-DOCKER_MYSQL_HOST_PORT=3307           # port host container MySQL
-DOCKER_DATABASE_URL=mysql://user:password@mysql:3306/simohe
 RUN_SEED=true
 ```
 
 ## Alur Deploy (ringkas)
 1. Siapkan VPS + domain (A record ke IP VPS).
-2. Clone repo / copy folder `server`.
-3. Isi `.env` (jangan commit).
-4. `docker compose up -d --build`.
-5. Migrasi & seed berjalan otomatis saat container `server` start (seed butuh
+2. Install & jalankan MySQL 8 **di host** VPS; setup DB/user:
+   `sudo mysql < server/tools/db/setup.sql`.
+3. Clone repo / copy folder `server`.
+4. Isi `.env` (jangan commit).
+5. `docker compose up -d --build` (hanya container server).
+6. Migrasi & seed berjalan otomatis saat container `server` start (seed butuh
    `DEVICE_KEY` di `.env`). Manual: `docker compose exec server bun run db:migrate`.
-6. Cek device key di log seed: `docker compose logs server`.
-7. Caddy menerbitkan sertifikat TLS otomatis.
-8. Uji `GET https://domain/api/health`.
-9. Konfigurasi ESP: `server_base_url=https://domain`, `device_key=...`.
-10. Build Flutter Web & Android dengan `--dart-define=API_BASE_URL=https://domain`.
+7. Cek device key di log seed: `docker compose logs server`.
+8. Caddy menerbitkan sertifikat TLS otomatis.
+9. Uji `GET https://domain/api/health`.
+10. Konfigurasi ESP: `server_base_url=https://domain`, `device_key=...`.
+11. Build Flutter Web & Android dengan `--dart-define=API_BASE_URL=https://domain`.
 
-## Database Terpusat (MySQL bersama aplikasi lain)
-Skenario: MySQL dijadikan **satu** di komputer server dan dipakai bersama
-aplikasi lain. Container `server` tidak menyalakan MySQL bawaan, melainkan
-terhubung ke MySQL terpusat.
+## MySQL di Host (bukan container)
+MySQL dijadikan **satu** instalasi di host (VPS/komputer server) dan dipakai
+aplikasi SIMOHE. Container `server` tidak menyalakan MySQL bawaan.
 
-Dua sub-kasus:
-- MySQL di komputer yang **sama** dengan container → host `host.docker.internal`
-  (sudah dipetakan via `extra_hosts` di file override).
-- MySQL di komputer **berbeda** → pakai IP/DNS server MySQL.
+Container server memakai **jaringan host**, sehingga bisa menjangkau MySQL lokal
+di `127.0.0.1:3306` **tanpa** mengubah `bind-address` MySQL. Ini cara paling
+sederhana saat server dan MySQL berada di komputer yang sama.
 
-### 1. Siapkan database & user di server MySQL
-Jalankan sebagai root di komputer MySQL:
+### 1. Siapkan database & user di MySQL host
+Jalankan sebagai admin di komputer MySQL:
 ```bash
-mysql -u root -p < server/tools/db/central-setup.sql
+sudo mysql < server/tools/db/setup.sql     # atau: mysql -u root -p < ...
 ```
-Skrip membuat DB `simohe` (utf8mb4) + user `simohe_app` + `GRANT`. **Ganti
-password** di dalam file dulu. Setara manualnya:
+Skrip membuat DB `simohe` (utf8mb4) + user `simohe_app` + `GRANT`. Password
+default `S1mohe!Local` (dev) — **ganti di produksi** dan samakan dengan
+`DATABASE_URL`. Setara manualnya:
 ```sql
 CREATE DATABASE IF NOT EXISTS simohe
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS 'simohe_app'@'%' IDENTIFIED BY 'GANTI-PASSWORD-KUAT';
+CREATE USER IF NOT EXISTS 'simohe_app'@'%' IDENTIFIED BY 'S1mohe!Local';
 GRANT ALL PRIVILEGES ON simohe.* TO 'simohe_app'@'%';
 FLUSH PRIVILEGES;
 ```
 
-### 2. Konfigurasi MySQL agar dapat diakses
-Di `/etc/mysql/mysql.conf.d/mysqld.cnf` (server MySQL):
+### 2. (Hanya bila MySQL di komputer berbeda) buka akses jaringan
+Jika MySQL di host/komputer lain (bukan yang menjalankan container), set
+`DATABASE_URL` ke IP host MySQL dan buka akses jaringan MySQL:
 ```ini
+# /etc/mysql/mysql.conf.d/mysqld.cnf
 [mysqld]
 bind-address = 0.0.0.0          # atau IP interface tertentu
-default-time-zone = '+00:00'   # semua waktu UTC
-max_connections = 200          # sesuaikan dengan jumlah aplikasi
+default-time-zone = '+00:00'    # semua waktu UTC
+max_connections = 200
 ```
 ```bash
 sudo systemctl restart mysql
-```
-Buka firewall **hanya** untuk host aplikasi:
-```bash
 sudo ufw allow from <IP-KOMPUTER-APLIKASI> to any port 3306 proto tcp
 ```
+Untuk mode jaringan host (MySQL di komputer yang sama), langkah ini **tidak
+diperlukan** (MySQL tetap `127.0.0.1`).
 
-### 3. Arahkan aplikasi ke DB terpusat
-Isi `.env` (lihat juga `tools/db/central-setup.sql`):
+### 3. Arahkan aplikasi ke MySQL
+Isi `.env` (lihat juga `tools/db/setup.sql`):
 ```
-CENTRAL_DATABASE_URL=mysql://simohe_app:PASSWORD@192.168.1.10:3306/simohe
+DATABASE_URL=mysql://simohe_app:PASSWORD@127.0.0.1:3306/simohe
+# MySQL di komputer berbeda:
+# DATABASE_URL=mysql://simohe_app:PASSWORD@192.168.1.10:3306/simohe
 ```
-Jalankan server dengan override `central-db` (MySQL bawaan **tidak** ikut):
+Jalankan server (container server saja):
 ```bash
-# build + jalankan server saja
-docker compose -f docker-compose.yml -f docker-compose.central-db.yml up -d --build server
-```
-Override ini: menonaktifkan service `mysql` (profil `local-db`), menghapus
-`depends_on`, mengganti `DATABASE_URL` ke `CENTRAL_DATABASE_URL`, dan menambah
-`host.docker.internal`. Jika MySQL di komputer yang sama dengan container,
-cukup set:
-```
-CENTRAL_DATABASE_URL=mysql://simohe_app:PASSWORD@host.docker.internal:3306/simohe
+docker compose up -d --build
 ```
 
 ### 4. Migrasi & seed
 Otomatis saat container start (entrypoint). Manual:
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.central-db.yml exec server bun run db:migrate
-docker compose -f docker-compose.yml -f docker-compose.central-db.yml exec server bun run db:seed
+docker compose exec server bun run db:migrate
+docker compose exec server bun run db:seed
 ```
 
 ### Catatan
 - User aplikasi cukup `GRANT ALL ON simohe.*` — **jangan** pakai root.
 - Jangan ekspos port MySQL ke jaringan publik tanpa firewall.
 - Butuh TLS ke MySQL? Tambahkan parameter SSL pada URL (didukung `mysql2`).
-- Saat berbagi MySQL dengan aplikasi lain, pantau `max_connections`,
-  CPU/RAM, dan ukuran disk.
-- Waktu tetap **UTC**; set `default-time-zone='+00:00'` di server MySQL.
+- Pantau `max_connections`, CPU/RAM, dan ukuran disk.
+- Waktu tetap **UTC**; set `default-time-zone='+00:00'` di host MySQL.
 
 ## Database & Backup
-- Dua mode: MySQL **bawaan** (volume `simohe_mysql_data`) atau **terpusat**
-  (dikelola server MySQL bersama aplikasi lain).
+- MySQL dijalankan **di host** (bukan container).
 - Backup harian: `mysqldump` ke file terkompresi + retensi (mis. 7–30 hari).
 - Uji restore berkala.
 - Job `retention` membersihkan `telemetry_raw` sesuai `raw_retention_days`.
 
 ## Mode Pengembangan Lokal
 ```bash
-# Server
+# Server (MySQL diasumsikan sudah jalan di host)
 cd server && bun install && bun run dev
 
 # Temukan IP LAN (agar HP/ESP bisa akses)
 hostname -I    # mis. 192.168.1.10
-
-# Jalankan MySQL lokal (docker)
-docker compose up -d mysql
 ```
 
 - ESP diuji dengan `server_base_url=http://192.168.1.10:3000`.

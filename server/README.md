@@ -4,78 +4,54 @@ Backend **SIMOHE** — Bun + TypeScript + Elysia + Drizzle ORM + MySQL 8.
 
 ## Prasyarat
 - [Bun](https://bun.sh) >= 1.1
-- Docker (untuk MySQL lokal) atau MySQL 8 yang sudah ada
+- MySQL 8 terpasang & berjalan **di host** (bukan container)
+- Docker (opsional, hanya bila ingin menjalankan server sebagai container)
 
-## Menjalankan (Docker — server + database sekaligus)
+## Setup MySQL lokal (sekali)
+MySQL dijalankan langsung di host; tidak ada container MySQL. Siapkan DB +
+user aplikasi:
 ```bash
 cd server
-cp .env.example .env          # sesuaikan (APP_TOKEN, DEVICE_KEY, dll)
-
-# Build + jalankan MySQL & server sebagai daemon
-docker compose up --build -d
+cp .env.example .env          # sesuaikan (APP_TOKEN, DEVICE_KEY, kredensial DB)
+sudo mysql < tools/db/setup.sql   # buat DB `simohe` + user `simohe_app`
 ```
-`docker compose up --build -d` menyalakan **MySQL + server** sekaligus. Kedua
-container memakai `restart: always`, jadi otomatis hidup lagi setelah komputer
-host reboot (pastikan service Docker aktif saat boot). Container server
-menunggu MySQL sehat, menerapkan migrasi, lalu menjalankan server. Seed device
-otomatis dijalankan bila `DEVICE_KEY` diisi di `.env` (idempoten).
+Kredensial di `setup.sql` harus sama dengan `DATABASE_URL` di `.env`.
 
-Semua pengaturan Docker diatur lewat `.env` (bukan hardcode di compose):
+## Menjalankan (Docker — server saja, MySQL di host)
+```bash
+cd server
+docker compose up --build -d  # build + jalankan container server saja
+```
+Container server memakai `restart: always`, jadi otomatis hidup lagi setelah
+host reboot (pastikan service Docker aktif saat boot). Container memakai
+**jaringan host** (`network_mode: host`) sehingga langsung menjangkau MySQL
+lokal di `127.0.0.1:3306` tanpa mengubah `bind-address` MySQL. Saat start,
+server menerapkan migrasi lalu menjalankan server. Seed device otomatis
+dijalankan bila `DEVICE_KEY` diisi di `.env` (idempoten).
+
+Pengaturan Docker diambil dari `.env`:
 
 | Variabel | Default | Fungsi |
 |---|---|---|
-| `DOCKER_SERVER_HOST_PORT` | `3001` | Port host untuk container server |
-| `DOCKER_MYSQL_HOST_PORT` | `3307` | Port host untuk container MySQL |
-| `DOCKER_DATABASE_URL` | `mysql://simohe:simohe@mysql:3306/simohe` | URL DB dari dalam jaringan Docker |
-| `PORT` | `3000` | Port server di dalam container |
+| `PORT` | `3000` | Port server (container jaringan host → langsung di host) |
+| `DATABASE_URL` | `mysql://simohe_app:S1mohe!Local@127.0.0.1:3306/simohe` | URL MySQL lokal |
 | `RUN_SEED` | `true` | Seed otomatis saat start (bila `DEVICE_KEY` diisi) |
 
-`DOCKER_SERVER_HOST_PORT` sengaja dibedakan dari `PORT` agar Docker tidak
-bentrok dengan dev lokal (`bun run dev`) di port 3000.
-
-Menyalakan/mengelola per container:
+Menyalakan/mengelola container server:
 ```bash
-docker compose up -d mysql          # hanya database
-docker compose up -d server         # hanya server (mysql ikut bila belum jalan)
 docker compose logs -f server       # lihat log server (termasuk device key seed)
 docker compose exec server bun run db:seed   # seed manual (cetak device key)
 docker compose restart server       # restart server saja
-docker compose down                 # hentikan semua (data MySQL tetap di volume)
+docker compose down                 # hentikan container server
 ```
-Karena default host port server `3001`, akses server Docker di
-http://localhost:3001 (bukan 3000).
-
-## Menjalankan dengan Database Terpusat (MySQL bersama aplikasi lain)
-Bila MySQL tidak dijalankan sebagai container bawaan, melainkan di komputer
-server (bersama aplikasi lain), pakai override `docker-compose.central-db.yml`.
-Service `mysql` dinonaktifkan dan `server` terhubung ke `CENTRAL_DATABASE_URL`.
-
-1. Di komputer MySQL, siapkan DB + user (ganti password di file dulu):
-   ```bash
-   mysql -u root -p < tools/db/central-setup.sql
-   ```
-2. Isi `.env`:
-   ```
-   # MySQL di komputer lain:
-   CENTRAL_DATABASE_URL=mysql://simohe_app:PASSWORD@192.168.1.10:3306/simohe
-   # atau MySQL di komputer yang sama dengan container:
-   CENTRAL_DATABASE_URL=mysql://simohe_app:PASSWORD@host.docker.internal:3306/simohe
-   ```
-3. Jalankan server saja (tanpa MySQL bawaan):
-   ```bash
-   docker compose -f docker-compose.yml -f docker-compose.central-db.yml up -d --build server
-   ```
-Migrasi & seed tetap berjalan otomatis saat start. Detail lengkap (konfigurasi
-`bind-address`, timezone UTC, firewall, backup) ada di
-`../docs/12-DEPLOYMENT.md` bagian **Database Terpusat**.
+Dengan jaringan host, server Docker langsung di http://localhost:3000.
 
 ## Menjalankan (dev tanpa Docker untuk server)
 ```bash
 cd server
 cp .env.example .env          # sesuaikan bila perlu
-docker compose up -d mysql    # MySQL 8.4 di port 3307
 bun install
-bun run db:migrate            # terapkan migrasi
+bun run db:migrate            # terapkan migrasi (ke MySQL host)
 bun run db:seed               # device + settings + batch awal
 bun run dev                   # server di http://localhost:3000
 ```
@@ -102,9 +78,8 @@ Dokumentasi API interaktif (dev): http://localhost:3000/api/docs
 
 ## Environment
 Lihat `.env.example`. Kunci: `DATABASE_URL`, `APP_TOKEN`, `APP_CORS_ORIGIN`,
-`DEVICE_KEY` (seed), `RATE_LIMIT_INGEST_PER_SEC`, `RATE_LIMIT_APP_PER_SEC`.
-Pengaturan Docker: `DOCKER_SERVER_HOST_PORT`, `DOCKER_MYSQL_HOST_PORT`,
-`DOCKER_DATABASE_URL`, `RUN_SEED`. Semua waktu **UTC**.
+`DEVICE_KEY` (seed), `RATE_LIMIT_INGEST_PER_SEC`, `RATE_LIMIT_APP_PER_SEC`,
+`RUN_SEED`. Untuk test: `TEST_DB_*`. Semua waktu **UTC**.
 
 ## Struktur
 ```
@@ -185,13 +160,15 @@ Amati hasilnya di `GET /api/live`, `GET /api/readings`, dan `GET /api/events`.
 
 ## Testing
 ```bash
-bun test                       # semua (butuh MySQL test di port 3307)
+bun test                       # semua (butuh MySQL test di port 3306)
 bun test tests/unit            # unit service (tanpa DB)
 bun test tests/integration     # endpoint (pakai DB simohe_test)
 bun run test:e2e               # matriks bisnis T1-T10 via simulator
 ```
 `tests/preload.ts` otomatis membuat & memigrasi database `simohe_test` memakai
-kredensial root dari env test.
+kredensial root dari env test (`TEST_DB_HOST`, `TEST_DB_PORT`,
+`TEST_DB_ROOT_USER`, `TEST_DB_ROOT_PASSWORD`; default `127.0.0.1:3306` root
+tanpa password).
 
 ## Live Smoke (server + simulator)
 Pastikan server berjalan, lalu:

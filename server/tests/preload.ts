@@ -4,9 +4,9 @@ import mysql from 'mysql2/promise'
 
 const TEST_DATABASE = 'simohe_test'
 const DB_HOST = process.env.TEST_DB_HOST ?? '127.0.0.1'
-const DB_PORT = Number(process.env.TEST_DB_PORT ?? 3307)
+const DB_PORT = Number(process.env.TEST_DB_PORT ?? 3306)
 const DB_ROOT_USER = process.env.TEST_DB_ROOT_USER ?? 'root'
-const DB_ROOT_PASSWORD = process.env.TEST_DB_ROOT_PASSWORD ?? 'simohe_root'
+const DB_ROOT_PASSWORD = process.env.TEST_DB_ROOT_PASSWORD ?? ''
 
 const admin = await mysql.createConnection({
   host: DB_HOST,

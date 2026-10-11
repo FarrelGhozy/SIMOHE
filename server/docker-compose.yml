@@ -1,27 +1,4 @@
 services:
-  mysql:
-    image: mysql:8.4
-    container_name: simohe-mysql
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-simohe_root}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-simohe}
-      MYSQL_USER: ${MYSQL_USER:-simohe}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-simohe}
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-    ports:
-      - "${DOCKER_MYSQL_HOST_PORT:-3307}:3306"
-    volumes:
-      - simohe_mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 30s
-
   server:
     build:
       context: .
@@ -29,17 +6,11 @@ services:
     image: simohe-server:latest
     container_name: simohe-server
     restart: always
-    depends_on:
-      mysql:
-        condition: service_healthy
+    # MySQL jalan langsung di host (127.0.0.1:3306). Container memakai jaringan
+    # host agar dapat menjangkau MySQL lokal tanpa mengubah bind-address MySQL.
+    network_mode: host
     env_file:
       - .env
-    environment:
-      PORT: ${PORT:-3000}
-      DATABASE_URL: ${DOCKER_DATABASE_URL:-mysql://simohe:simohe@mysql:3306/simohe}
-      RUN_SEED: ${RUN_SEED:-true}
-    ports:
-      - "${DOCKER_SERVER_HOST_PORT:-3001}:${PORT:-3000}"
     healthcheck:
       test:
         [
@@ -50,6 +21,3 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-
-volumes:
-  simohe_mysql_data:
