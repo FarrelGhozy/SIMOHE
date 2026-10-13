@@ -111,11 +111,19 @@ Legenda prioritas: `P0` wajib, `P1` penting, `P2` opsional.
 - [x] Buffer offline + backoff reconnect
 - [x] Watchdog
 - [x] Unit test logika host (`pio test -e native`) + build kedua target
+- [x] Hardening audit 2026-10-13 (lihat `docs/16-FIRMWARE-FIX.md`): latch max-on
+  10 mnt, edge-trigger safety, sanitize config + CRC EEPROM, parser anti-OOB,
+  readLine anti-split, offline tolak-truncate, `nh3_ok`, `timeReached()`,
+  expiry-defer, drop-400, serial buffer 256 dua sisi (Mega 22 test, ESP 13 test)
 - [ ] Bench test per komponen → dipindah ke Fase 6 (butuh hardware)
 
 ---
 
 ## Fase 6 — Hardware & HIL `P0`
+- [x] Flash firmware Mega + ESP (board RobotDyn MEGA+WiFi R3, Mega↔ESP di Serial3)
+- [x] HIL awal: telemetry Mega→ESP→server→DB (device online, firmware 0.1.0)
+- [x] HIL: perintah app end-to-end `pending→sent→acked` (heater_on/auto)
+- [x] Uji fail-safe sensor absen: status `error`, heater & valve OFF
 - [ ] Perakitan wiring sesuai `docs/03`
 - [ ] Proteksi daya (fuse, flyback diode)
 - [ ] Bench test per komponen (DS18B20, MQ-137, relay, Serial Mega↔ESP)
