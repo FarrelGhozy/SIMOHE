@@ -16,9 +16,12 @@ class MegaBridge {
   void sendTelemetry(const simohe::Telemetry& telemetry);
   void sendEvent(const char* code, const char* detail);
   void sendAck(const char* id, bool ok);
+  uint32_t droppedLines() const { return droppedLines_; }
 
  private:
   Stream* serial_ = nullptr;
   char buffer_[simohe::kMaxLine];
   size_t length_ = 0;
+  bool overflow_ = false;
+  uint32_t droppedLines_ = 0;
 };
