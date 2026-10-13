@@ -3,6 +3,7 @@
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecureBearSSL.h>
+#include <simohe_core.h>
 #include <string.h>
 
 #include "config.h"
@@ -21,6 +22,8 @@ bool ApiClient::postIngest(const char* body, char* responseOut, size_t responseS
 
   bool begun = false;
   if (url.startsWith("https")) {
+    // CATATAN KEAMANAN: setInsecure() tanpa validasi sertifikat rentan MITM.
+    // Untuk produksi HTTPS, ganti dengan fingerprint/CA. HTTP lokal tetap aman.
     static BearSSL::WiFiClientSecure secureClient;
     secureClient.setInsecure();
     begun = http.begin(secureClient, url);
@@ -40,10 +43,12 @@ bool ApiClient::postIngest(const char* body, char* responseOut, size_t responseS
   if (statusCode > 0) {
     const String payload = http.getString();
     if (responseOut != nullptr && responseSize > 0) {
-      strncpy(responseOut, payload.c_str(), responseSize - 1);
-      responseOut[responseSize - 1] = '\0';
+      // Truncate aman; parser akan menolak JSON terpotong.
+      simohe::safeCopy(responseOut, responseSize, payload.c_str());
     }
     ok = statusCode == 200;
+  } else if (responseOut != nullptr && responseSize > 0) {
+    responseOut[0] = '\0';
   }
   http.end();
   return ok;
