@@ -1,12 +1,20 @@
 #include "logic.h"
 
+#include "protocol.h"
+#include "safe_str.h"
+
 namespace simohe {
 
 namespace {
 
 uint32_t minutesToMs(uint32_t minutes) {
-  uint32_t safe = minutes == 0 ? 1 : minutes;
-  return safe * 60000UL;
+  if (minutes == 0) {
+    minutes = 1;
+  }
+  if (minutes > kMaxMinutes) {
+    minutes = kMaxMinutes;
+  }
+  return minutes * 60000UL;
 }
 
 bool autoHeater(bool previousOn, float tempC, const HeaterConfig& config) {
@@ -24,7 +32,15 @@ void thermalStep(ThermalState& state, const HeaterConfig& config, bool tempOk, f
   state.safetyCutoff = false;
   state.safetyReason = nullptr;
 
+  // Cooldown pasca max-on: deadline di masa depan (overflow-safe, interval < 2^31).
+  if (state.cooldownUntilMs != 0 && timeReached(nowMs, state.cooldownUntilMs)) {
+    state.cooldownUntilMs = 0;
+  }
+  const bool cooldownActive = state.cooldownUntilMs != 0;
+
   if (!tempOk) {
+    state.heater = false;
+  } else if (cooldownActive) {
     state.heater = false;
   } else if (tempC >= config.tempMaxC) {
     state.heater = false;
@@ -38,7 +54,7 @@ void thermalStep(ThermalState& state, const HeaterConfig& config, bool tempOk, f
         state.heater = false;
         break;
       case HeaterMode::ForceOn:
-        if (nowMs < state.forceOnUntilMs) {
+        if (!timeReached(nowMs, state.forceOnUntilMs)) {
           state.heater = true;
         } else {
           state.mode = HeaterMode::Auto;
@@ -48,7 +64,7 @@ void thermalStep(ThermalState& state, const HeaterConfig& config, bool tempOk, f
         break;
       case HeaterMode::Auto:
       default:
-        state.heater = autoHeater(previous, tempC, config);
+        state.heater = config.heaterAuto ? autoHeater(previous, tempC, config) : false;
         break;
     }
   }
@@ -63,6 +79,7 @@ void thermalStep(ThermalState& state, const HeaterConfig& config, bool tempOk, f
     state.heater = false;
     state.mode = HeaterMode::Auto;
     state.forceOnUntilMs = 0;
+    state.cooldownUntilMs = nowMs + minutesToMs(kHeaterCooldownMin);
     state.safetyCutoff = true;
     state.safetyReason = "heater_max_on";
   }
@@ -100,20 +117,24 @@ void valveStep(ValveState& state, const HeaterConfig& config, uint32_t nowMs) {
 
 void maturityStep(MaturityState& state, const HeaterConfig& config, bool nh3Ok, float nh3Ppm,
                   uint32_t nowMs) {
-  uint32_t dtSec = 0;
-  if (state.lastUpdateMs != 0 && nowMs > state.lastUpdateMs) {
-    dtSec = (nowMs - state.lastUpdateMs) / 1000UL;
+  uint32_t dtMs = 0;
+  if (state.lastUpdateMs != 0 && nowMs != state.lastUpdateMs) {
+    dtMs = nowMs - state.lastUpdateMs;  // unsigned wrap aman; clamp agar loncatan aneh tak dihitung penuh
+    if (dtMs > 3600000UL) {
+      dtMs = 3600000UL;
+    }
   }
   state.lastUpdateMs = nowMs;
 
   if (nh3Ok && nh3Ppm >= config.nh3MaturePpm) {
-    state.streakSec += dtSec;
+    state.streakMs += dtMs;
   } else {
-    state.streakSec = 0;
+    state.streakMs = 0;
   }
+  state.streakSec = state.streakMs / 1000UL;
 
-  const uint32_t holdSec = config.matureHoldMin * 60UL;
-  const bool nowMature = holdSec > 0 && state.streakSec >= holdSec;
+  const uint32_t holdMs = minutesToMs(config.matureHoldMin);
+  const bool nowMature = state.streakMs >= holdMs;
   state.justMatured = nowMature && !state.mature;
   state.mature = nowMature;
 }
