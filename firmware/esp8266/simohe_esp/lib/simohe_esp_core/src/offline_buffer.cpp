@@ -11,13 +11,17 @@ bool OfflineBuffer::push(const char* frame) {
   if (storage_ == nullptr || frameSize_ == 0 || capacity_ == 0 || frame == nullptr) {
     return false;
   }
+  // Tolak frame yang tidak muat utuh agar tidak menyimpan JSON terpotong.
+  if (strlen(frame) >= frameSize_) {
+    return false;
+  }
   if (count_ == capacity_) {
     head_ = (head_ + 1) % capacity_;
     count_--;
   }
   const size_t slot = (head_ + count_) % capacity_;
-  strncpy(storage_ + slot * frameSize_, frame, frameSize_ - 1);
-  storage_[slot * frameSize_ + frameSize_ - 1] = '\0';
+  const size_t len = strlen(frame);
+  memcpy(storage_ + slot * frameSize_, frame, len + 1);
   count_++;
   return true;
 }
