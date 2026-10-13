@@ -201,3 +201,75 @@ format waktu ISO-8601 UTC.
 
 **Status: lulus.** Bench per komponen & HIL (fase 6) menunggu hardware.
 
+## 11. Hasil Uji Fase 6 (Hardware, sebagian)
+Board: **RobotDyn MEGA+WiFi R3** (ATmega2560 + ESP8266, CH340G, 8 DIP switch).
+Mega↔ESP terhubung lewat **Serial3 (pin 14/15)**.
+
+### Prosedur flash (dipakai)
+```bash
+# Mega — set DIP 3,4 = ON
+cd firmware/mega/simohe_mega
+pio run -e mega && pio run -e mega -t upload --upload-port /dev/ttyUSB0
+
+# ESP — set DIP 5,6,7 = ON (auto-reset jalan, tanpa tombol Mode)
+cd firmware/esp8266/simohe_esp
+pio run -e esp && pio run -e esp -t upload --upload-port /dev/ttyUSB0
+
+# Mode jalan — set DIP 1,2,3,4 = ON
+```
+`secrets.h` ESP diisi SSID/password, `SIMOHE_BASE_URL=http://<LAN-IP>:3000`,
+dan `SIMOHE_DEVICE_KEY` (plaintext; server menyimpan hash-nya).
+
+### Hasil
+| Uji | Hasil |
+|---|---|
+| Flash Mega | lulus (23532 byte, verify OK) |
+| Flash ESP | lulus (409168 byte, hash verified) |
+| Jalur Mega→ESP→server (Serial3) | lulus — device `online`, fw `0.1.0` |
+| Fail-safe sensor absen | lulus — status `error`, heater OFF, valve OFF |
+| Perintah app end-to-end | lulus — `heater_on` `pending→sent→acked`, mode `FORCE_ON` |
+| Mode kembali via perintah | lulus — `heater_auto` → mode `AUTO` |
+
+### Perbaikan selama Fase 6
+- **Port Serial board**: Mega↔ESP di **Serial3 (14/15)**, bukan Serial2. Diubah di
+  `config.h`; docs 03/04 disinkronkan.
+- **Byte terbuang pada Serial3**: buffer RX AVR hanya 64 byte sementara ESP kerap
+  mengirim `config` + `cmd` berurutan, sehingga frame `cmd` tergabung/terpotong
+  dan JSON invalid (command tak pernah di-`ack`). Perbaikan:
+  `SERIAL_RX_BUFFER_SIZE=256` & `SERIAL_TX_BUFFER_SIZE=256` (build_flags Mega),
+  dan ESP hanya mengirim `config` saat nilainya berubah.
+- **Debug bench**: Mega mencetak `[cmd rx]` / `[cmd] ... ok` ke Serial0
+  (USB) saat `SIMOHE_DEBUG=1`.
+
+### Perbaikan pasca-audit sensor (sebelum flash ulang)
+Ditemukan saat audit bahwa sensor tak terbaca. Perbaikan yang diterapkan:
+- **MQ-137 R0 selalu null**: `r0Calibrated` tak pernah di-set. Ditambah kalibrasi
+  R0 otomatis sekali (udara bersih) + simpan EEPROM, dan pemicu serial `cal`.
+  Kurva diperbaiki ke `a=40.0`, `b=-4.106` (datasheet MQ-137).
+- **DS18B20**: tambah `setResolution(12)`, diagnostik `getDeviceCount`, dan
+  pemindaian ulang bus tiap 5 detik bila sensor absen.
+- **Kematangan Mega tak pernah naik**: `maturityStep` memakai delta detik yang
+  selalu 0 pada loop cepat; diubah ke akumulasi milidetik.
+- **Telemetry banjir saat `heater_auto=false`**: pengecekan `heaterAuto` dipindah
+  ke `thermalStep` (intinya) sehingga tidak mengganti state tiap loop.
+- **Buffer offline ESP terpotong**: `OFFLINE_FRAME_SIZE` dinaikkan 224 → 1024
+  (kapasitas 30 → 8 agar RAM aman).
+- **Server**: `latest_state.updated_at` kini di-set eksplisit (sebelumnya beku
+  saat nilai tak berubah) dan `temp_ok` diturunkan dari `temp_c` bila tak dikirim.
+
+Checklist HIL (poin 4) ditambah butir: firmware melaporkan sensor suhu & NH3
+terbaca (`temp_ok`/`nh3_ok` = true) setelah kalibrasi.
+
+### Checklist HIL (poin 4)
+- [x] Telemetry muncul di server tiap interval.
+- [ ] Heater nyala saat suhu < min, mati saat ≥ min+hyst.
+- [ ] Safety cutoff (suhu tinggi & heater max on) bekerja.
+- [ ] Katup hanya bergerak setelah perintah app; auto-close saat max open.
+- [ ] Perintah basi (lewat TTL) tidak dieksekusi.
+- [ ] WiFi dicabut → reconnect dengan backoff; telemetry pulih.
+- [ ] Server mati → ESP buffer & kirim ulang saat pulih.
+- [ ] Restart Mega/ESP → config dari EEPROM/server tetap benar.
+
+**Status: sebagian lulus.** Bench per komponen & sisa checklist HIL menunggu
+proses wiring oleh pengguna.
+
