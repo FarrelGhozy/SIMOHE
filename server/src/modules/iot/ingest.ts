@@ -61,7 +61,7 @@ export async function ingestTelemetry(device: Device, body: IngestBody): Promise
   const telemetry = body.telemetry
   const tempC = telemetry.temp_c ?? null
   const nh3Ppm = telemetry.nh3_ppm ?? null
-  const tempOk = telemetry.temp_ok ?? true
+  const tempOk = telemetry.temp_ok ?? tempC !== null
   const heaterOn = telemetry.heater ?? false
   const valveOpen = telemetry.valve ?? false
   const mode = telemetry.mode ?? 'AUTO'
@@ -134,6 +134,7 @@ export async function ingestTelemetry(device: Device, body: IngestBody): Promise
       mode,
       status,
       matureStreakSec: maturity.streakSec,
+      updatedAt: now,
     })
     .onDuplicateKeyUpdate({
       set: {
@@ -145,6 +146,7 @@ export async function ingestTelemetry(device: Device, body: IngestBody): Promise
         mode,
         status,
         matureStreakSec: maturity.streakSec,
+        updatedAt: now,
       },
     })
 
