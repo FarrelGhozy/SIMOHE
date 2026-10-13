@@ -24,6 +24,7 @@ size_t buildIngestBody(const simohe::Telemetry& telemetry, const char* firmware,
     telemetryObject["nh3_ppm"] = nullptr;
   }
   telemetryObject["temp_ok"] = telemetry.tempOk;
+  telemetryObject["nh3_ok"] = telemetry.nh3Ok;
   telemetryObject["heater"] = telemetry.heater;
   telemetryObject["valve"] = telemetry.valve;
   telemetryObject["mode"] = simohe::modeToString(telemetry.mode);
