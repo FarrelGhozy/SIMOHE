@@ -8,5 +8,7 @@ namespace config_store {
 
 bool load(simohe::HeaterConfig& config, float& r0, bool& r0Calibrated);
 void save(const simohe::HeaterConfig& config, float r0, bool r0Calibrated);
+// Tulis hanya bila isi berubah (hemat siklus EEPROM ~100rb tulis).
+void saveIfChanged(const simohe::HeaterConfig& config, float r0, bool r0Calibrated);
 
 }  // namespace config_store
