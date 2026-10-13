@@ -20,4 +20,6 @@ class EspBridge {
   Stream* serial_ = nullptr;
   char buffer_[simohe::kMaxLine];
   size_t length_ = 0;
+  bool overflow_ = false;
+  uint32_t droppedLines_ = 0;
 };
