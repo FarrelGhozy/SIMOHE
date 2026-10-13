@@ -17,6 +17,7 @@ constexpr uint8_t STATUS_LED_ACTIVE_LOW = 1;
 constexpr uint32_t PING_INTERVAL_MS = 30000;
 constexpr uint32_t HTTP_TIMEOUT_MS = 10000;
 
-// Buffer offline (RAM). 30 frame x 224 byte ~= 6.5 KB.
-constexpr size_t OFFLINE_FRAME_SIZE = 224;
-constexpr size_t OFFLINE_CAPACITY = 30;
+// Buffer offline (RAM). Frame harus menampung badan ingest penuh (maks 900 byte).
+// 8 frame x 1024 byte = 8 KB.
+constexpr size_t OFFLINE_FRAME_SIZE = 1024;
+constexpr size_t OFFLINE_CAPACITY = 8;
