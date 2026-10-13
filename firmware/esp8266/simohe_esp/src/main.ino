@@ -35,6 +35,28 @@ size_t pendingAckCount = 0;
 simohe::Telemetry latestTelemetry;
 bool haveTelemetry = false;
 simohe::HeaterConfig config;
+simohe::HeaterConfig lastSentConfig;
+bool haveSentConfig = false;
+
+bool configEquals(const simohe::HeaterConfig& a, const simohe::HeaterConfig& b) {
+  const float eps = 0.001f;
+  const bool floatsEqual = fabsf(a.tempMinC - b.tempMinC) < eps &&
+                           fabsf(a.tempMaxC - b.tempMaxC) < eps &&
+                           fabsf(a.hysteresisC - b.hysteresisC) < eps &&
+                           fabsf(a.nh3MaturePpm - b.nh3MaturePpm) < eps;
+  return a.ingestIntervalSec == b.ingestIntervalSec && floatsEqual &&
+         a.matureHoldMin == b.matureHoldMin && a.heaterMaxOnMin == b.heaterMaxOnMin &&
+         a.valveMaxOpenMin == b.valveMaxOpenMin && a.commandTtlSec == b.commandTtlSec &&
+         a.heaterAuto == b.heaterAuto;
+}
+
+void sendConfigIfChanged() {
+  if (!haveSentConfig || !configEquals(config, lastSentConfig)) {
+    bridge.sendConfig(config);
+    lastSentConfig = config;
+    haveSentConfig = true;
+  }
+}
 
 uint32_t serverEpoch = 0;
 uint32_t serverEpochAtMs = 0;
@@ -47,6 +69,8 @@ bool ledState = false;
 
 char ingestBody[900];
 char responseBuffer[1400];
+static_assert(OFFLINE_FRAME_SIZE >= 900,
+              "OFFLINE_FRAME_SIZE harus muat satu body ingest utuh");
 
 uint32_t currentEpoch() {
   if (!timeSynced) {
@@ -77,11 +101,12 @@ void addEvent(const char* code, const char* detail) {
   if (pendingEventCount >= kMaxPendingEvents) {
     return;
   }
+  if (code == nullptr) {
+    return;
+  }
   PendingEvent& target = pendingEvents[pendingEventCount];
-  strncpy(target.code, code, sizeof(target.code) - 1);
-  target.code[sizeof(target.code) - 1] = '\0';
-  strncpy(target.detail, detail, sizeof(target.detail) - 1);
-  target.detail[sizeof(target.detail) - 1] = '\0';
+  simohe::safeCopy(target.code, sizeof(target.code), code);
+  simohe::safeCopy(target.detail, sizeof(target.detail), detail);
   pendingEventCount++;
 }
 
@@ -89,9 +114,13 @@ void addAck(const char* id, bool ok) {
   if (pendingAckCount >= kMaxPendingAcks) {
     return;
   }
+  if (id == nullptr || id[0] == '\0') {
+    return;
+  }
   PendingAck& target = pendingAcks[pendingAckCount];
-  strncpy(target.id, id, sizeof(target.id) - 1);
-  target.id[sizeof(target.id) - 1] = '\0';
+  if (!simohe::safeCopy(target.id, sizeof(target.id), id)) {
+    return;  // terpotong -> jangan ack id rusak
+  }
   target.ok = ok;
   pendingAckCount++;
 }
@@ -147,9 +176,13 @@ void handleCommands(const simohe_esp::IngestResult& result) {
   const uint32_t nowEpoch = currentEpoch();
   for (size_t i = 0; i < result.commandCount; i++) {
     const simohe_esp::ServerCommand& command = result.commands[i];
-    if (command.hasExpiry && nowEpoch != 0 && command.expiresAtEpoch != 0 &&
-        nowEpoch > command.expiresAtEpoch) {
-      continue;
+    if (command.hasExpiry && command.expiresAtEpoch != 0) {
+      if (!timeSynced) {
+        continue;  // belum sync waktu -> tunda perintah ber-expiry, jangan eksekusi buta
+      }
+      if (nowEpoch > command.expiresAtEpoch) {
+        continue;
+      }
     }
     bridge.sendCommand(command);
   }
@@ -164,9 +197,16 @@ void doIngest(uint32_t nowMs) {
 
   int statusCode = 0;
   const bool ok = api.postIngest(ingestBody, responseBuffer, sizeof(responseBuffer), statusCode);
+  // Pending sudah tersalin ke ingestBody; bersihkan agar tak ganda.
   clearPending();
 
   if (!ok) {
+    if (statusCode == 400) {
+      // Payload ditolak server (bad request): jangan buffer, hindari poison queue.
+      ingestBackoffAttempt = 0;
+      nextIngestMs = nowMs + (config.ingestIntervalSec < 1 ? 1 : config.ingestIntervalSec) * 1000UL;
+      return;
+    }
     offline.push(ingestBody);
     ingestBackoffAttempt++;
     nextIngestMs = nowMs + simohe_esp::backoffDelayMs(ingestBackoffAttempt);
@@ -175,9 +215,10 @@ void doIngest(uint32_t nowMs) {
 
   ingestBackoffAttempt = 0;
   simohe_esp::IngestResult result;
+  result.config = config;  // merge: field hilang tidak reset ke default
   if (simohe_esp::parseIngestResponse(responseBuffer, result) && result.valid) {
     config = result.config;
-    bridge.sendConfig(config);
+    sendConfigIfChanged();
     syncTime(result.serverTime);
     handleCommands(result);
     const uint32_t intervalSec = result.pollAfterSec > 0 ? result.pollAfterSec : config.ingestIntervalSec;
@@ -202,18 +243,17 @@ void drainOffline() {
     int statusCode = 0;
     const bool ok = api.postIngest(offline.peek(), responseBuffer, sizeof(responseBuffer), statusCode);
     if (!ok) {
+      if (statusCode == 400) {
+        offline.pop();  // payload busuk: buang, jangan macetkan antrian
+        continue;
+      }
       break;
     }
     offline.pop();
     drained++;
   }
-  if (drained > 0) {
-    simohe_esp::IngestResult result;
-    if (simohe_esp::parseIngestResponse(responseBuffer, result) && result.valid) {
-      config = result.config;
-      syncTime(result.serverTime);
-    }
-  }
+  // Replay offline hanya untuk pengiriman ulang telemetri. Config/waktu/
+  // perintah dari respons replay sengaja TIDAK diterapkan (basi).
 }
 
 void setup() {
@@ -236,12 +276,12 @@ void loop() {
     handleIncoming(frame);
   }
 
-  if (now >= nextPingMs) {
+  if (simohe::timeReached(now, nextPingMs)) {
     bridge.sendPing();
     nextPingMs = now + PING_INTERVAL_MS;
   }
 
-  if (now >= nextIngestMs) {
+  if (simohe::timeReached(now, nextIngestMs)) {
     if (wifi.connected()) {
       doIngest(now);
       drainOffline();
