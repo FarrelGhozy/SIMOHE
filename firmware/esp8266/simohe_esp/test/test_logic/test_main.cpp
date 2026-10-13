@@ -119,6 +119,63 @@ static void test_format_iso_roundtrip(void) {
   TEST_ASSERT_EQUAL_UINT32(1791453600UL, parseIso8601Utc(buffer));
 }
 
+static void test_offline_reject_oversize(void) {
+  char storage[2 * 8];
+  OfflineBuffer buffer(storage, 8, 2);
+  TEST_ASSERT_TRUE(buffer.push("1234567"));  // 7 char muat (butuh null)
+  TEST_ASSERT_FALSE(buffer.push("12345678"));  // 8 char == frameSize -> tolak
+  TEST_ASSERT_EQUAL_UINT(1, buffer.size());
+  TEST_ASSERT_EQUAL_STRING("1234567", buffer.peek());
+}
+
+static void test_ingest_has_nh3_ok(void) {
+  Telemetry telemetry;
+  telemetry.tempOk = true;
+  telemetry.nh3Ok = false;
+  char body[900];
+  const size_t length =
+      buildIngestBody(telemetry, "0.1.0", "2026-10-08T10:00:00Z", nullptr, 0, nullptr, 0, body,
+                      sizeof(body));
+  TEST_ASSERT_TRUE(length > 0);
+  TEST_ASSERT_NOT_NULL(strstr(body, "\"nh3_ok\""));
+  TEST_ASSERT_NOT_NULL(strstr(body, "\"temp_ok\""));
+}
+
+static void test_response_merge_keeps_base(void) {
+  IngestResult result;
+  result.config.tempMinC = 33.0f;  // base berjalan
+  result.config.tempMaxC = 45.0f;
+  // Respons parsial tanpa temp_min_c: harus pertahankan 33, bukan reset 30.
+  const char* json =
+      "{\"server_time\":\"2026-10-08T10:00:06Z\",\"config\":{\"temp_max_c\":45},"
+      "\"commands\":[],\"poll_after_sec\":5}";
+  TEST_ASSERT_TRUE(parseIngestResponse(json, result));
+  TEST_ASSERT_EQUAL_FLOAT(33.0f, result.config.tempMinC);
+}
+
+static void test_response_expires_epoch_fallback(void) {
+  const char* json =
+      "{\"server_time\":\"2026-10-08T10:00:06Z\",\"config\":{\"temp_max_c\":45},"
+      "\"commands\":[{\"id\":\"c9\",\"action\":\"valve_open\",\"args\":{},"
+      "\"expires_epoch\":1791453665}],\"poll_after_sec\":5}";
+  IngestResult result;
+  result.config.tempMinC = 30.0f;
+  TEST_ASSERT_TRUE(parseIngestResponse(json, result));
+  TEST_ASSERT_EQUAL_UINT(1, result.commandCount);
+  TEST_ASSERT_TRUE(result.commands[0].hasExpiry);
+  TEST_ASSERT_EQUAL_UINT32(1791453665UL, result.commands[0].expiresAtEpoch);
+}
+
+static void test_response_heater_auto_bool(void) {
+  const char* json =
+      "{\"server_time\":\"2026-10-08T10:00:06Z\","
+      "\"config\":{\"heater_auto\":true},\"commands\":[],\"poll_after_sec\":5}";
+  IngestResult result;
+  result.config.heaterAuto = false;
+  TEST_ASSERT_TRUE(parseIngestResponse(json, result));
+  TEST_ASSERT_TRUE(result.config.heaterAuto);
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_backoff_growth);
@@ -129,5 +186,10 @@ int main(int, char**) {
   RUN_TEST(test_build_ingest_body);
   RUN_TEST(test_build_ingest_body_null_sensors);
   RUN_TEST(test_format_iso_roundtrip);
+  RUN_TEST(test_offline_reject_oversize);
+  RUN_TEST(test_ingest_has_nh3_ok);
+  RUN_TEST(test_response_merge_keeps_base);
+  RUN_TEST(test_response_expires_epoch_fallback);
+  RUN_TEST(test_response_heater_auto_bool);
   return UNITY_END();
 }
