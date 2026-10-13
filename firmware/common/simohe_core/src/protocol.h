@@ -16,6 +16,14 @@ constexpr size_t kMaxEventCodeLen = 24;
 constexpr size_t kMaxEventDetailLen = 64;
 constexpr size_t kMaxPendingCommands = 4;
 
+// Batas validasi config (anti overflow + anti nilai liar dari EEPROM/server).
+constexpr uint16_t kMaxIngestIntervalSec = 3600;
+constexpr float kMinTempC = -20.0f;
+constexpr float kMaxTempC = 80.0f;
+constexpr float kMaxHysteresisC = 10.0f;
+constexpr uint32_t kMaxMinutes = 1440;
+constexpr uint32_t kMaxCommandTtlSec = 86400;
+
 enum class HeaterMode : uint8_t { Auto, ForceOn, ForceOff };
 
 enum class FrameKind : uint8_t {
@@ -77,5 +85,10 @@ struct IncomingFrame {
 
 const char* modeToString(HeaterMode mode);
 bool modeFromString(const char* text, HeaterMode& out);
+
+// Validasi + clamp config dari server/EEPROM. Return true bila semua field
+// sudah dalam rentang waras (tidak NaN/Inf/terbalik). Bila false, field yang
+// liar di-clamp ke default aman dan caller harus menolak/mencatat.
+bool sanitizeHeaterConfig(HeaterConfig& config);
 
 }  // namespace simohe
