@@ -66,13 +66,14 @@ selain itu:
   jika temp >= temp_max_c:
       heater = OFF
       mode = AUTO
-      kirim event SAFETY_CUTOFF (temp_high)
+      kirim event SAFETY_CUTOFF (temp_high, edge-trigger)
   jika heater ON terus > heater_max_on_min:
-      heater = OFF
+      heater = OFF + cooldown 10 menit (latch, tetap OFF walau dingin)
       mode = AUTO
-      kirim event SAFETY_CUTOFF (heater_max_on)
+      kirim event SAFETY_CUTOFF (heater_max_on, sekali)
 ```
 - **Hysteresis** mencegah heater berkedip (on/off cepat).
+- Event safety edge-trigger agar tidak membanjiri Serial/server.
 - Saat suhu turun jauh (mis. < `temp_min_c - 5`), server membuat event
   `temp_low` (peringatan), terpisah dari aksi heater.
 
@@ -96,6 +97,8 @@ selain itu:
   5. Bila lewat TTL sebelum diambil → `expired` (tidak dieksekusi).
 - **Safety auto-close**: setelah terbuka `valve_max_open_min`, firmware menutup
   paksa + event `safety_cutoff`.
+- Mega tanpa RTC: expiry perintah difilter di ESP. Perintah ber-expiry ditunda
+  bila ESP belum sync waktu; perintah kedaluwarsa tidak dikirim ke Mega.
 
 ### Mengapa TTL?
 Agar perintah basi (mis. dibuat saat device offline, lalu online lama kemudian)
