@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include <string.h>
 
+#include "safe_str.h"
 #include "time_parse.h"
 
 namespace simohe {
@@ -10,8 +11,14 @@ namespace simohe {
 namespace {
 
 size_t finish(JsonDocument& doc, char* out, size_t outSize) {
+  if (out == nullptr || outSize < 3) {
+    return 0;
+  }
   size_t written = serializeJson(doc, out, outSize);
   if (written == 0 || written + 2 > outSize) {
+    if (outSize > 0) {
+      out[0] = '\0';
+    }
     return 0;
   }
   out[written] = '\n';
@@ -20,13 +27,18 @@ size_t finish(JsonDocument& doc, char* out, size_t outSize) {
 }
 
 bool copyString(char* destination, size_t capacity, const char* source) {
-  if (source == nullptr) {
-    destination[0] = '\0';
-    return false;
+  return safeCopy(destination, capacity, source);
+}
+
+// heater_auto bisa 0/1 (int) atau true/false (bool). Default ikut current.
+bool parseHeaterAuto(JsonVariant value, bool current) {
+  if (value.isNull()) {
+    return current;
   }
-  strncpy(destination, source, capacity - 1);
-  destination[capacity - 1] = '\0';
-  return true;
+  if (value.is<bool>()) {
+    return value.as<bool>();
+  }
+  return value.as<int>() != 0;
 }
 
 }  // namespace
@@ -114,6 +126,7 @@ bool decodeLine(const char* line, IncomingFrame& out) {
   if (line == nullptr) {
     return false;
   }
+  out = IncomingFrame();
 
   StaticJsonDocument<640> doc;
   if (deserializeJson(doc, line)) {
@@ -125,6 +138,8 @@ bool decodeLine(const char* line, IncomingFrame& out) {
     out.kind = FrameKind::Telemetry;
     out.telemetry.seq = doc["seq"] | 0;
     out.telemetry.uptimeSec = doc["uptime"] | 0;
+    out.telemetry.tempC = 0.0f;
+    out.telemetry.nh3Ppm = 0.0f;
     if (!doc["temp_c"].isNull()) {
       out.telemetry.tempC = doc["temp_c"].as<float>();
       out.telemetry.tempOk = true;
@@ -148,7 +163,9 @@ bool decodeLine(const char* line, IncomingFrame& out) {
     out.telemetry.mature = doc["mature"] | false;
     HeaterMode mode = HeaterMode::Auto;
     const char* modeText = doc["mode"] | "AUTO";
-    modeFromString(modeText, mode);
+    if (!modeFromString(modeText, mode)) {
+      mode = HeaterMode::Auto;
+    }
     out.telemetry.mode = mode;
     return true;
   }
@@ -168,10 +185,23 @@ bool decodeLine(const char* line, IncomingFrame& out) {
   }
 
   if (strcmp(type, "cmd") == 0) {
+    const char* rawId = doc["id"] | "";
+    const char* rawAction = doc["action"] | "";
+    // Tolak id/action yang terpotong agar ack tetap cocok dengan server.
+    if (!safeCopy(out.command.id, sizeof(out.command.id), rawId) ||
+        !safeCopy(out.command.action, sizeof(out.command.action), rawAction) ||
+        rawId[0] == '\0' || rawAction[0] == '\0') {
+      out = IncomingFrame();
+      return false;
+    }
     out.kind = FrameKind::Command;
-    copyString(out.command.id, sizeof(out.command.id), doc["id"] | "");
-    copyString(out.command.action, sizeof(out.command.action), doc["action"] | "");
-    out.command.durationMin = doc["args"]["duration_min"] | 30;
+    int duration = doc["args"]["duration_min"] | 30;
+    if (duration < 1) {
+      duration = 1;
+    } else if (duration > (int)kMaxMinutes) {
+      duration = (int)kMaxMinutes;
+    }
+    out.command.durationMin = (uint32_t)duration;
     const char* expires = doc["expires_at"] | "";
     uint32_t epoch = parseIso8601Utc(expires);
     if (epoch == 0) {
@@ -191,14 +221,11 @@ bool decodeLine(const char* line, IncomingFrame& out) {
     config.hysteresisC = doc["temp_hysteresis_c"] | config.hysteresisC;
     config.nh3MaturePpm = doc["nh3_mature_ppm"] | config.nh3MaturePpm;
     config.matureHoldMin = doc["mature_hold_min"] | config.matureHoldMin;
-    bool heaterAuto = config.heaterAuto;
-    if (doc.containsKey("heater_auto")) {
-      heaterAuto = doc["heater_auto"].as<int>() != 0;
-    }
-    config.heaterAuto = heaterAuto;
+    config.heaterAuto = parseHeaterAuto(doc["heater_auto"], config.heaterAuto);
     config.heaterMaxOnMin = doc["heater_max_on_min"] | config.heaterMaxOnMin;
     config.valveMaxOpenMin = doc["valve_max_open_min"] | config.valveMaxOpenMin;
     config.commandTtlSec = doc["command_ttl_sec"] | config.commandTtlSec;
+    sanitizeHeaterConfig(config);
     out.config = config;
     out.configValid = true;
     return true;
