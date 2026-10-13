@@ -105,6 +105,33 @@ static void test_maturity(void) {
   TEST_ASSERT_EQUAL_UINT32(0, state.streakSec);
 }
 
+static void test_maturity_frequent_calls(void) {
+  HeaterConfig config;
+  config.nh3MaturePpm = 25.0f;
+  config.matureHoldMin = 1;
+  MaturityState state;
+  for (uint32_t t = 0; t <= 61000; t += 2) {
+    maturityStep(state, config, true, 26.0f, t + 1);
+  }
+  TEST_ASSERT_TRUE(state.mature);
+  TEST_ASSERT_TRUE(state.streakSec >= 60);
+}
+
+static void test_thermal_auto_disabled(void) {
+  HeaterConfig config;
+  config.heaterAuto = false;
+  ThermalState state;
+  thermalStep(state, config, true, 20.0f, 1000);
+  TEST_ASSERT_FALSE(state.heater);
+  thermalStep(state, config, true, 20.0f, 2000);
+  TEST_ASSERT_FALSE(state.heater);
+
+  state.mode = HeaterMode::ForceOn;
+  state.forceOnUntilMs = 5000;
+  thermalStep(state, config, true, 20.0f, 3000);
+  TEST_ASSERT_TRUE(state.heater);
+}
+
 static void test_encode_telemetry(void) {
   Telemetry telemetry;
   telemetry.seq = 7;
@@ -158,6 +185,80 @@ static void test_parse_iso_utc(void) {
   TEST_ASSERT_EQUAL_UINT32(0, parseIso8601Utc("invalid"));
 }
 
+static void test_mode_from_string_strict(void) {
+  HeaterMode mode = HeaterMode::Auto;
+  TEST_ASSERT_TRUE(modeFromString("AUTO", mode));
+  TEST_ASSERT_EQUAL(HeaterMode::Auto, mode);
+  TEST_ASSERT_TRUE(modeFromString("force_on", mode));
+  TEST_ASSERT_EQUAL(HeaterMode::ForceOn, mode);
+  TEST_ASSERT_TRUE(modeFromString("FORCE_OFF", mode));
+  TEST_ASSERT_EQUAL(HeaterMode::ForceOff, mode);
+  // Rancu lama: satu huruf / prefix harus ditolak (anti OOB + validasi).
+  TEST_ASSERT_FALSE(modeFromString("A", mode));
+  TEST_ASSERT_FALSE(modeFromString("F", mode));
+  TEST_ASSERT_FALSE(modeFromString("FooooooN", mode));
+  TEST_ASSERT_FALSE(modeFromString("", mode));
+  TEST_ASSERT_FALSE(modeFromString(nullptr, mode));
+}
+
+static void test_parse_iso_reject_short_and_bad_date(void) {
+  TEST_ASSERT_EQUAL_UINT32(0, parseIso8601Utc(""));
+  TEST_ASSERT_EQUAL_UINT32(0, parseIso8601Utc("2026-10-08"));
+  TEST_ASSERT_EQUAL_UINT32(0, parseIso8601Utc("2026-02-30T10:00:00Z"));
+  TEST_ASSERT_EQUAL_UINT32(0, parseIso8601Utc("2026-10-08T10:00:00"));  // tanpa Z
+  TEST_ASSERT_EQUAL_UINT32(0, parseIso8601Utc("2026-10-08T10:00:60Z"));  // detik 60 ditolak
+  TEST_ASSERT_EQUAL_UINT32(1791453600UL, parseIso8601Utc("2026-10-08T10:00:00Z"));
+}
+
+static void test_decode_command_reject_overlong(void) {
+  IncomingFrame frame;
+  // id 40 char (>36) harus ditolak agar ack tetap cocok.
+  const char* longId =
+      "{\"type\":\"cmd\",\"id\":\"0123456789012345678901234567890123456789\","
+      "\"action\":\"valve_open\",\"args\":{}}";
+  TEST_ASSERT_FALSE(decodeLine(longId, frame));
+  // duration negatif / raksasa di-clamp 1..1440.
+  IncomingFrame f2;
+  TEST_ASSERT_TRUE(decodeLine(
+      "{\"type\":\"cmd\",\"id\":\"c1\",\"action\":\"heater_on\",\"args\":{\"duration_min\":999999}}", f2));
+  TEST_ASSERT_EQUAL_UINT32(1440, f2.command.durationMin);
+}
+
+static void test_sanitize_config(void) {
+  HeaterConfig config;
+  config.tempMinC = 50.0f;  // terbalik vs tempMax default 45
+  config.tempMaxC = 40.0f;
+  config.heaterMaxOnMin = 0;
+  TEST_ASSERT_FALSE(sanitizeHeaterConfig(config));
+  TEST_ASSERT_TRUE(config.tempMinC < config.tempMaxC);
+  TEST_ASSERT_EQUAL_UINT32(1, config.heaterMaxOnMin);
+  HeaterConfig good;
+  TEST_ASSERT_TRUE(sanitizeHeaterConfig(good));
+}
+
+static void test_thermal_max_on_latch(void) {
+  HeaterConfig config;
+  config.heaterMaxOnMin = 1;
+  ThermalState state;
+  thermalStep(state, config, true, 20.0f, 1000);
+  TEST_ASSERT_TRUE(state.heater);
+  thermalStep(state, config, true, 20.0f, 61000);
+  TEST_ASSERT_FALSE(state.heater);
+  TEST_ASSERT_TRUE(state.safetyCutoff);
+  // Loop berikutnya HARUS tetap OFF (cooldown 10 menit), bukan nyala lagi.
+  thermalStep(state, config, true, 20.0f, 62000);
+  TEST_ASSERT_FALSE(state.heater);
+  // Setelah cooldown lewat, boleh nyala lagi.
+  thermalStep(state, config, true, 20.0f, 61000 + 10 * 60000UL + 1000);
+  TEST_ASSERT_TRUE(state.heater);
+}
+
+static void test_time_reached_overflow(void) {
+  TEST_ASSERT_TRUE(timeReached(0x00000010UL, 0xFFFFFFF0UL));
+  TEST_ASSERT_FALSE(timeReached(0xFFFFFFF0UL, 0x00000010UL));
+  TEST_ASSERT_TRUE(timeReached(1000, 1000));
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_moving_average);
@@ -169,10 +270,18 @@ int main(int, char**) {
   RUN_TEST(test_thermal_safety_max_on);
   RUN_TEST(test_valve_auto_close);
   RUN_TEST(test_maturity);
+  RUN_TEST(test_maturity_frequent_calls);
+  RUN_TEST(test_thermal_auto_disabled);
   RUN_TEST(test_encode_telemetry);
   RUN_TEST(test_decode_command);
   RUN_TEST(test_decode_config);
   RUN_TEST(test_decode_bad_line);
   RUN_TEST(test_parse_iso_utc);
+  RUN_TEST(test_mode_from_string_strict);
+  RUN_TEST(test_parse_iso_reject_short_and_bad_date);
+  RUN_TEST(test_decode_command_reject_overlong);
+  RUN_TEST(test_sanitize_config);
+  RUN_TEST(test_thermal_max_on_latch);
+  RUN_TEST(test_time_reached_overflow);
   return UNITY_END();
 }
