@@ -1,6 +1,7 @@
 #include "time_parse.h"
 
 #include <stdio.h>
+#include <string.h>
 
 namespace simohe {
 
@@ -47,7 +48,13 @@ uint32_t parseIso8601Utc(const char* text) {
   if (text == nullptr) {
     return 0;
   }
-  if (text[4] != '-' || text[7] != '-' || text[10] != 'T' || text[13] != ':' || text[16] != ':') {
+  // Butuh minimal "YYYY-MM-DDThh:mm:ssZ" (20 char). Cek panjang dulu agar
+  // tidak OOB-read untuk string pendek/kosong.
+  if (strlen(text) < 20) {
+    return 0;
+  }
+  if (text[4] != '-' || text[7] != '-' || text[10] != 'T' || text[13] != ':' || text[16] != ':' ||
+      text[19] != 'Z') {
     return 0;
   }
 
@@ -58,8 +65,18 @@ uint32_t parseIso8601Utc(const char* text) {
   const int minute = readNumber(text + 14, 2);
   const int second = readNumber(text + 17, 2);
 
-  if (year < 0 || month < 1 || month > 12 || day < 1 || day > 31 || hour < 0 || hour > 23 ||
-      minute < 0 || minute > 59 || second < 0 || second > 60) {
+  if (year < 1970 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31 || hour < 0 ||
+      hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59) {
+    return 0;
+  }
+  // Validasi hari-per-bulan termasuk kabisat.
+  static const uint8_t kDaysInMonth[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+  uint8_t dim = kDaysInMonth[(unsigned)(month - 1)];
+  const bool leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+  if (month == 2 && leap) {
+    dim = 29;
+  }
+  if ((uint8_t)day > dim) {
     return 0;
   }
 
