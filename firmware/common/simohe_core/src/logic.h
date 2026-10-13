@@ -11,6 +11,8 @@ struct ThermalState {
   bool heater = false;
   uint32_t forceOnUntilMs = 0;
   uint32_t heaterOnSinceMs = 0;
+  // Cooldown setelah safety max-on: heater dipaksa OFF sampai timestamp ini.
+  uint32_t cooldownUntilMs = 0;
   bool heating = false;
   bool safetyCutoff = false;
   const char* safetyReason = nullptr;
@@ -25,6 +27,7 @@ struct ValveState {
 };
 
 struct MaturityState {
+  uint32_t streakMs = 0;
   uint32_t streakSec = 0;
   bool mature = false;
   uint32_t lastUpdateMs = 0;
@@ -37,6 +40,10 @@ void thermalStep(ThermalState& state, const HeaterConfig& config, bool tempOk, f
 void valveApplyOpen(ValveState& state, uint32_t nowMs);
 void valveApplyClose(ValveState& state);
 void valveStep(ValveState& state, const HeaterConfig& config, uint32_t nowMs);
+
+// Cooldown pasca max-on (menit). Safety tetap: heater tidak boleh langsung
+// nyala lagi loop berikutnya.
+constexpr uint32_t kHeaterCooldownMin = 10;
 
 void maturityStep(MaturityState& state, const HeaterConfig& config, bool nh3Ok, float nh3Ppm,
                   uint32_t nowMs);
