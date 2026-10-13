@@ -38,7 +38,10 @@ bernilai `false`). `uptime` dalam detik.
 {"type":"cmd","id":"c1f2...","action":"valve_open","args":{},"expires_epoch":1791453665}
 ```
 `action`: `valve_open` | `valve_close` | `heater_on` | `heater_off` |
-`heater_auto`. Untuk `heater_on`, `args` berisi `duration_min`.
+`heater_auto`. Untuk `heater_on`, `args` berisi `duration_min` (di-clamp
+`1..heaterMaxOnMin`, maks 1440). Expiry dikirim sebagai `expires_epoch`
+(utama) atau `expires_at` ISO-8601 (kompatibel); kedua format diterima Mega+ESP.
+`id`/`action` yang melebihi kapasitas (`37`/`16`) ditolak agar `ack` cocok.
 
 Catatan:
 - Konfigurasi **bukan** perintah. Server mengirim `config` melalui respons
@@ -50,17 +53,23 @@ Catatan:
 
 **Konfigurasi**
 ```json
-{"type":"config","history_interval_min":15,"ingest_interval_sec":10,"temp_min_c":30.0,"temp_max_c":45.0,"temp_hysteresis_c":2.0,"nh3_mature_ppm":25.0,"mature_hold_min":30,"heater_auto":1,"heater_max_on_min":60,"valve_max_open_min":10,"command_ttl_sec":60}
+{"type":"config","ingest_interval_sec":10,"temp_min_c":30.0,"temp_max_c":45.0,"temp_hysteresis_c":2.0,"nh3_mature_ppm":25.0,"mature_hold_min":30,"heater_auto":1,"heater_max_on_min":60,"valve_max_open_min":10,"command_ttl_sec":60}
 ```
+`heater_auto` menerima `0/1` atau `true/false`. Semua field disanitasi
+(`sanitizeHeaterConfig`); nilai liar di-clamp. `history_interval_min` tidak
+dipakai (sampling di server).
 
 **Ping/keepalive**
 ```json
-{"type":"ping","ts":"2026-10-08T10:00:00Z"}
+{"type":"ping"}
 ```
+Mega membalas dengan telemetry (`seq` increment agar tetap monoton).
 
 ### Aturan
 - Jika JSON tidak valid atau `type` tak dikenal → abaikan baris (jangan blok).
-- `seq` naik monoton; berguna mendeteksi kehilangan frame.
+  Baris >511 char dibuang utuh. `mode` harus `AUTO`/`FORCE_ON`/`FORCE_OFF`
+  (case-insensitive, harus penuh).
+- `seq` naik monoton (termasuk balasan ping); berguna mendeteksi kehilangan frame.
 - Mega membalas `ping` dengan telemetry terbaru.
 
 ## 2. HTTP ESP ↔ Server
@@ -82,6 +91,7 @@ Request:
     "temp_c": 31.2,
     "nh3_ppm": 18.42,
     "temp_ok": true,
+    "nh3_ok": true,
     "heater": true,
     "valve": false,
     "mode": "AUTO",
@@ -89,7 +99,7 @@ Request:
     "uptime": 98765
   },
   "events": [
-    {"code": "SAFETY_CUTOFF", "detail": "heater_max_on", "ts": "2026-10-08T09:59:00Z"}
+    {"code": "SAFETY_CUTOFF", "detail": "heater_max_on"}
   ],
   "acks": [ {"id": "c1f2...", "ok": true} ]
 }
@@ -139,7 +149,8 @@ Catatan:
 
 ### Backoff ESP
 - Gagal kirim → retry 2s, 4s, 8s, 16s, 32s, maks 60s.
-- Tetap simpan telemetry terbaru (dan beberapa terakhir) selama offline.
+- Buffer offline: 8 frame ingest penuh (`8x1024`). Replay maks 5/ingest.
+- `400` tidak di-retry/di-buffer (payload busuk dibuang); `429/5xx`/gagal koneksi di-buffer.
 
 ## 3. HTTP Aplikasi ↔ Server (ringkas)
 - Auth: `Authorization: Bearer <APP_TOKEN>`.
