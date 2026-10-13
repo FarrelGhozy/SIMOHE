@@ -22,7 +22,7 @@ void WifiManager::loop(uint32_t nowMs) {
   }
 
   connected_ = false;
-  if (nowMs < nextAttemptMs_) {
+  if (!simohe::timeReached(nowMs, nextAttemptMs_)) {
     return;
   }
 
