@@ -1,12 +1,15 @@
 #include "bridge.h"
 
+#include <string.h>
+
 void MegaBridge::begin(Stream& serial) {
   serial_ = &serial;
   length_ = 0;
+  overflow_ = false;
 }
 
 bool MegaBridge::readLine(char* out, size_t maxLen) {
-  if (serial_ == nullptr || maxLen == 0) {
+  if (serial_ == nullptr || maxLen == 0 || out == nullptr) {
     return false;
   }
 
@@ -16,6 +19,13 @@ bool MegaBridge::readLine(char* out, size_t maxLen) {
       continue;
     }
     if (c == '\n') {
+      if (overflow_) {
+        // Baris overlong sebelumnya: buang utuh, jangan emit potongan.
+        overflow_ = false;
+        length_ = 0;
+        droppedLines_++;
+        continue;
+      }
       if (length_ == 0) {
         continue;
       }
@@ -25,10 +35,13 @@ bool MegaBridge::readLine(char* out, size_t maxLen) {
       length_ = 0;
       return true;
     }
+    if (overflow_) {
+      continue;  // buang sampai newline
+    }
     if (length_ < sizeof(buffer_) - 1) {
       buffer_[length_++] = c;
     } else {
-      length_ = 0;  // baris terlalu panjang, buang
+      overflow_ = true;  // tandai, buang sisa baris sampai '\n'
     }
   }
   return false;
@@ -39,6 +52,12 @@ bool MegaBridge::receiveWait(simohe::IncomingFrame& frame) {
   if (!readLine(line, sizeof(line))) {
     return false;
   }
+#if SIMOHE_DEBUG
+  if (strstr(line, "\"cmd\"") != nullptr) {
+    Serial.print(F("[cmd rx] "));
+    Serial.println(line);
+  }
+#endif
   return simohe::decodeLine(line, frame);
 }
 
