@@ -5,10 +5,11 @@
 void EspBridge::begin(Stream& serial) {
   serial_ = &serial;
   length_ = 0;
+  overflow_ = false;
 }
 
 bool EspBridge::readLine(char* out, size_t maxLen) {
-  if (serial_ == nullptr || maxLen == 0) {
+  if (serial_ == nullptr || maxLen == 0 || out == nullptr) {
     return false;
   }
 
@@ -18,6 +19,12 @@ bool EspBridge::readLine(char* out, size_t maxLen) {
       continue;
     }
     if (c == '\n') {
+      if (overflow_) {
+        overflow_ = false;
+        length_ = 0;
+        droppedLines_++;
+        continue;
+      }
       if (length_ == 0) {
         continue;
       }
@@ -27,10 +34,13 @@ bool EspBridge::readLine(char* out, size_t maxLen) {
       length_ = 0;
       return true;
     }
+    if (overflow_) {
+      continue;
+    }
     if (length_ < sizeof(buffer_) - 1) {
       buffer_[length_++] = c;
     } else {
-      length_ = 0;
+      overflow_ = true;
     }
   }
   return false;
@@ -49,8 +59,10 @@ void EspBridge::sendCommand(const simohe_esp::ServerCommand& command) {
     return;
   }
   simohe::Command outgoing;
-  strncpy(outgoing.id, command.id, sizeof(outgoing.id) - 1);
-  strncpy(outgoing.action, command.action, sizeof(outgoing.action) - 1);
+  if (!simohe::safeCopy(outgoing.id, sizeof(outgoing.id), command.id) ||
+      !simohe::safeCopy(outgoing.action, sizeof(outgoing.action), command.action)) {
+    return;  // id/action terpotong -> jangan kirim perintah rusak
+  }
   outgoing.durationMin = command.durationMin;
   outgoing.hasExpiry = command.hasExpiry;
   outgoing.expiresAtEpoch = command.expiresAtEpoch;
