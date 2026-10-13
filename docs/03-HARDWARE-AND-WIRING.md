@@ -31,13 +31,14 @@
 | Relay K1 (katup) | Digital 7 | Aktif HIGH (sesuaikan modul) |
 | Relay K2 (heater) | Digital 6 | Aktif HIGH (sesuaikan modul) |
 | Buzzer/LED status (opsional) | Digital 8 | Indikator lokal |
-| Komunikasi ke ESP | Serial2 TX2(16) / RX2(17) | 115200 baud, level 3.3V↔5V |
+| Komunikasi ke ESP | Serial3 TX3(14) / RX3(15) | 115200 baud, level 3.3V↔5V |
 | Daya logika 5V | 5V & GND | Dari terminal block (step-down) |
 
-> Board "Mega + ESP8266 built-in" umumnya sudah menyediakan level shifter dan
-> jalur UART antara Mega dan ESP. Verifikasi manual board masing-masing: pastikan
-> Serial2 (atau jalur yang disediakan) benar-benar terhubung ke ESP, dan tidak
-> bentrok dengan pin lain.
+> Board "Mega + ESP8266 built-in" (mis. RobotDyn MEGA+WiFi R3) sudah menyediakan
+> level shifter dan jalur UART antara Mega dan ESP. Pada board ini Mega↔ESP
+> terhubung lewat **Serial3 (pin 14/15)** dan dipilih via DIP switch 8-posisi.
+> Verifikasi manual board masing-masing: pastikan jalur yang disediakan
+> benar-benar terhubung ke ESP, dan tidak bentrok dengan pin lain.
 
 ## Wiring
 
@@ -95,11 +96,28 @@ K2 (heater):
 
 ### 5. Komunikasi Mega ↔ ESP8266
 ```
-Mega TX2 (16) ──▶ ESP RX
-Mega RX2 (17) ◀── ESP TX
+Mega TX3 (14) ──▶ ESP RX
+Mega RX3 (15) ◀── ESP TX
 GND bersama
 ```
 Protokol: JSON per baris (lihat `05-COMMUNICATION-PROTOCOL.md`).
+
+### 6. DIP Switch Board Combo (RobotDyn MEGA+WiFi R3)
+Board combo memakai satu CH340G yang dapat diarahkan ke Mega atau ESP lewat
+8 DIP switch. Posisi switch:
+
+| Mode | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|
+| Upload ke **Mega2560** | OFF | OFF | ON | ON | OFF | OFF | OFF |
+| Upload ke **ESP8266** | OFF | OFF | OFF | OFF | ON | ON | ON |
+| Serial monitor ESP | OFF | OFF | OFF | OFF | ON | ON | OFF |
+| **Jalan**: Mega ↔ ESP | ON | ON | ON | ON | OFF | OFF | OFF |
+| Mega ↔ ESP (USB independen) | ON | ON | OFF | OFF | OFF | OFF | OFF |
+| Semua terpisah | OFF | OFF | OFF | OFF | OFF | OFF | OFF |
+
+Switch 8 tidak dipakai. Saat **upload ESP**, tahan tombol **Mode** di board
+ketika proses upload dimulai; setelah selesai set switch 7 = OFF. Untuk mode
+jalan normal, set 1–4 ON.
 
 ## Diagram Wiring (ringkas)
 
@@ -121,7 +139,7 @@ flowchart LR
     RL -->|NO K2| HT["Heater 12V"]
     VLV --> GND
     HT --> GND
-    Mega <-->|Serial2| ESP["ESP8266"]
+    Mega <-->|Serial3| ESP["ESP8266"]
 ```
 
 ## Catatan Kalibrasi & Perakitan
