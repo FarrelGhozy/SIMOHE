@@ -1,69 +1,65 @@
-import 'package:dio/dio.dart';
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:simohe/core/network/api_exception.dart';
 
-RequestOptions _options() => RequestOptions(path: '/api/live');
-
 void main() {
-  test('meneruskan error body dari server', () {
-    final error = DioException(
-      requestOptions: _options(),
-      type: DioExceptionType.badResponse,
-      response: Response<dynamic>(
-        requestOptions: _options(),
-        statusCode: 400,
-        data: {
-          'error': {'code': 'VALIDATION_ERROR', 'message': 'temp_c wajib angka'},
-        },
-      ),
+  test('meneruskan error body Edge Function { error: { code, message } }', () {
+    final error = FunctionException(
+      status: 400,
+      details: {
+        'error': {'code': 'VALIDATION_ERROR', 'message': 'temp_c wajib angka'},
+      },
     );
 
-    final mapped = ApiException.fromDio(error);
+    final mapped = ApiException.fromSupabase(error);
     expect(mapped.code, 'VALIDATION_ERROR');
     expect(mapped.message, 'temp_c wajib angka');
     expect(mapped.statusCode, 400);
   });
 
-  test('memetakan 401 tanpa body standar', () {
-    final error = DioException(
-      requestOptions: _options(),
-      type: DioExceptionType.badResponse,
-      response: Response<dynamic>(requestOptions: _options(), statusCode: 401),
+  test('memetakan 401 fungsi sebagai UNAUTHORIZED', () {
+    final error = FunctionException(
+      status: 401,
+      details: {
+        'error': {'code': 'UNAUTHORIZED', 'message': 'tidak valid'},
+      },
     );
 
-    final mapped = ApiException.fromDio(error);
+    final mapped = ApiException.fromSupabase(error);
     expect(mapped.isUnauthorized, isTrue);
     expect(mapped.code, 'UNAUTHORIZED');
   });
 
   test('memetakan timeout sebagai error jaringan', () {
-    final error = DioException(
-      requestOptions: _options(),
-      type: DioExceptionType.connectionTimeout,
+    final mapped = ApiException.fromSupabase(
+      TimeoutException('timeout', const Duration(seconds: 10)),
     );
-
-    final mapped = ApiException.fromDio(error);
     expect(mapped.code, 'TIMEOUT');
     expect(mapped.isNetwork, isTrue);
   });
 
-  test('memetakan connection error sebagai NETWORK', () {
-    final error = DioException(
-      requestOptions: _options(),
-      type: DioExceptionType.connectionError,
+  test('memetakan SocketException sebagai NETWORK', () {
+    final mapped = ApiException.fromSupabase(
+      const SocketException('Failed host lookup'),
     );
-
-    expect(ApiException.fromDio(error).code, 'NETWORK');
+    expect(mapped.code, 'NETWORK');
+    expect(mapped.isNetwork, isTrue);
   });
 
-  test('memetakan 5xx sebagai SERVER_ERROR', () {
-    final error = DioException(
-      requestOptions: _options(),
-      type: DioExceptionType.badResponse,
-      response: Response<dynamic>(requestOptions: _options(), statusCode: 503),
+  test('memetakan PostgrestException dengan code/message', () {
+    final mapped = ApiException.fromSupabase(
+      const PostgrestException(message: 'row missing', code: 'PGRST116'),
     );
+    expect(mapped.code, 'PGRST116');
+    expect(mapped.message, 'row missing');
+  });
 
-    expect(ApiException.fromDio(error).code, 'SERVER_ERROR');
+  test('melewatkan ApiException apa adanya', () {
+    const original = ApiException(code: 'NETWORK', message: 'x');
+    expect(ApiException.fromSupabase(original), same(original));
   });
 }

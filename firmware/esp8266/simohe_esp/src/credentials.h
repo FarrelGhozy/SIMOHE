@@ -7,3 +7,9 @@
 #else
 #include "secrets.example.h"
 #endif
+
+// Kompatibilitas: secrets.h lama (pra-Supabase) belum punya SIMOHE_ANON_KEY.
+// Isi kunci Supabase di secrets.h; tanpa itu ingest ditolak (401).
+#ifndef SIMOHE_ANON_KEY
+#define SIMOHE_ANON_KEY ""
+#endif

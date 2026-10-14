@@ -36,6 +36,8 @@ bool ApiClient::postIngest(const char* body, char* responseOut, size_t responseS
   }
 
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("apikey", SIMOHE_ANON_KEY);
+  http.addHeader("Authorization", String("Bearer ") + SIMOHE_ANON_KEY);
   http.addHeader("X-Device-Key", SIMOHE_DEVICE_KEY);
 
   statusCode = http.POST((uint8_t*)body, strlen(body));

@@ -1,21 +1,27 @@
 # 08 — Flutter App
 
+> **Migrasi 2026-10-14 (Fase 8)**: `ApiClient` Dio + `API_BASE_URL`/`APP_TOKEN`
+> diganti **`supabase_flutter`** (`SUPABASE_URL`/`SUPABASE_PUBLISHABLE_KEY`,
+> tanpa login). Baca langsung PostgREST, tulis via Edge Functions, Realtime
+> dengan fallback polling. Bagian yang masih menyebut Dio/APP_TOKEN di bawah
+> adalah arsip pra-migrasi.
+
 ## Tujuan
 Satu basis kode untuk **Android** dan **Web** (desktop/iOS menyusul). Aplikasi
 responsif, dengan fokus monitoring + kontrol yang jelas.
 
-## Stack & Paket (rencana)
+## Stack & Paket (aktif)
 | Kebutuhan | Paket |
 |---|---|
 | State management | `flutter_riverpod` |
 | Routing | `go_router` |
-| HTTP | `dio` |
+| Backend | `supabase_flutter` (PostgREST + Functions + Realtime) |
 | Model & serialisasi | `freezed` + `json_serializable` |
 | Chart | `fl_chart` |
 | Format waktu/angka | `intl` |
 | Penyimpanan lokal | `shared_preferences` (cache) |
 | Notifikasi lokal | `flutter_local_notifications` (opsional) |
-| Env | `--dart-define` (mis. `API_BASE_URL`) |
+| Env | `--dart-define` (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`) |
 
 > Tambahkan paket hanya saat fase terkait dimulai; jaga `pubspec.yaml` tetap
 > ramping. Lihat `AGENTS.md` untuk aturan menambah dependensi.
@@ -145,11 +151,18 @@ class EventItem {
 }
 ```
 
-## Alur Network
-1. `ApiClient` menyisipkan `Authorization: Bearer <APP_TOKEN>`.
-2. Error mapping: 401 → pesan token; 5xx → retry/indikator; timeout → status
-   offline.
-3. Cache lokal untuk menampilkan data terakhir saat offline.
+## Alur Network (aktif, Supabase)
+1. `Supabase.initialize(url, publishableKey)` di `main()`; klien via
+   `supabaseClientProvider`.
+2. Repository `DeviceScopedRepository`: resolve device aktif (id terkecil)
+   sekali lalu cache; semua query filter `device_id`.
+3. Baca via PostgREST (`devices`, `latest_state`, `settings`, `events`,
+   `commands`, `sensor_readings`/`telemetry_raw`, `batches`); tulis via
+   `functions.invoke('app-command'|'app-settings'|'app-batch')`.
+4. Realtime subscribe (`latest_state`, `events`, `commands`) + polling
+   10/30/5 dtk sebagai fallback; error → `ApiException.fromSupabase`.
+5. Cache lokal nilai `live` untuk mode offline.
+6. Agregasi `1h` dan ringkasan dihitung di klien dari data `15m`.
 
 ## Web vs Android
 - **Android**: notifikasi lokal via `flutter_local_notifications`; akses network
@@ -160,11 +173,10 @@ class EventItem {
 
 ## Konfigurasi Build
 ```bash
-# Android
-flutter run --dart-define=API_BASE_URL=http://192.168.1.10:3000 --dart-define=APP_TOKEN=change-me-app-token
-
-# Web
-flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:3000 --dart-define=APP_TOKEN=change-me-app-token
+# Android & Web (tanpa login)
+flutter run --dart-define=SUPABASE_URL=https://<ref>.supabase.co \
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable> \
+  [--dart-define=APP_WRITE_KEY=<bila-diset>]
 ```
 
 ## Catatan Implementasi (Fase 3)

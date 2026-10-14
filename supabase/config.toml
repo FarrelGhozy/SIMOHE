@@ -1,0 +1,20 @@
+# See https://supabase.com/docs/guides/cli/config
+[functions.iot-ingest]
+enabled = true
+verify_jwt = false
+
+[functions.app-command]
+enabled = true
+verify_jwt = false
+
+[functions.app-settings]
+enabled = true
+verify_jwt = false
+
+[functions.app-batch]
+enabled = true
+verify_jwt = false
+
+[functions.jobs-tick]
+enabled = true
+verify_jwt = false

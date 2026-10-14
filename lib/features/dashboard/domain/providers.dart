@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/app_config.dart';
-import '../../../core/network/api_exception.dart';
 import '../../../core/network/providers.dart';
 import '../../../shared/models/enums.dart';
 import '../../../shared/models/live_state.dart';
@@ -12,11 +12,12 @@ import '../../history/domain/providers.dart';
 import '../data/dashboard_repository.dart';
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>(
-  (ref) => DashboardRepository(ref.watch(apiClientProvider)),
+  (ref) => DashboardRepository(ref.watch(supabaseClientProvider)),
 );
 
 class LiveNotifier extends AsyncNotifier<LiveState> {
   Timer? _timer;
+  RealtimeChannel? _channel;
 
   @override
   Future<LiveState> build() async {
@@ -25,7 +26,30 @@ class LiveNotifier extends AsyncNotifier<LiveState> {
       (_) => _poll(),
     );
     ref.onDispose(() => _timer?.cancel());
+    _subscribeRealtime();
     return _fetch();
+  }
+
+  /// Realtime sebagai pelengkap polling; diabaikan bila Supabase belum
+  /// siap (mis. unit test) — polling tetap jalan sebagai fallback.
+  void _subscribeRealtime() {
+    try {
+      final client = ref.read(supabaseClientProvider);
+      _channel = client.channel('live-state')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'latest_state',
+          callback: (_) => _poll(),
+        )
+        ..subscribe();
+      ref.onDispose(() {
+        final channel = _channel;
+        if (channel != null) unawaited(client.removeChannel(channel));
+      });
+    } on Object {
+      _channel = null;
+    }
   }
 
   Future<LiveState> _fetch() async {

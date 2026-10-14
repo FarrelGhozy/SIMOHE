@@ -27,7 +27,7 @@ class HistoryData {
 }
 
 final historyRepositoryProvider = Provider<HistoryRepository>(
-  (ref) => HistoryRepository(ref.watch(apiClientProvider)),
+  (ref) => HistoryRepository(ref.watch(supabaseClientProvider)),
 );
 
 class HistoryNotifier extends AsyncNotifier<HistoryData> {

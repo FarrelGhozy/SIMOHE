@@ -46,12 +46,21 @@ Ringkasan checklist ada di `TODO.md` (root proyek).
 - Uji HIL penuh + checklist.
 - **Lulus**: checklist HIL tercentang pada perangkat nyata.
 
-## Fase 7 — Deployment & Pola Akhir
-- Docker Compose + Caddy + TLS.
-- Konfigurasi ESP ke domain.
-- Build APK & Flutter Web.
-- Backup, monitoring, dokumentasi akhir.
-- **Lulus**: sistem berjalan stabil via domain.
+## Fase 7 — Deployment & Pola Akhir `[dibatalkan → Fase 8]`
+- Rencana Docker + Caddy + MySQL host **dibatalkan** (lihat arsip server).
+- Digantikan Fase 8 (Supabase-only) di bawah.
+
+## Fase 8 — Migrasi Supabase-only `[aktif]`
+- Skema Postgres + RLS + seed (`supabase/migrations/`, `seed.sql`).
+- Edge Functions: `iot-ingest`, `app-command`, `app-settings`, `app-batch`,
+  `jobs-tick` + Cron tiap menit.
+- Flutter `supabase_flutter` (tanpa login) + Realtime + fallback polling.
+- Firmware ESP ke `/functions/v1/iot-ingest` (+ header Supabase).
+- Arsip server Bun ke `reference/archive/server-bun-2026-10-14/`.
+- **Lulus**: matriks T1–T10 via Edge Function + app; katup end-to-end;
+  `flutter analyze` bersih; firmware test lulus.
+- Detail: `17-SUPABASE-MIGRATION.md`, checklist `TODO.md` Fase 8,
+  setup `supabase/SETUP.md`.
 
 ## Estimasi Ketergantungan
 ```

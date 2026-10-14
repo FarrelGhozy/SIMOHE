@@ -7,7 +7,7 @@
 #define SIMOHE_FW_VERSION "0.1.0"
 #define SIMOHE_PROTOCOL_VERSION 1
 
-#define SIMOHE_INGEST_PATH "/api/iot/ingest"
+#define SIMOHE_INGEST_PATH "/functions/v1/iot-ingest"
 
 constexpr uint32_t ESP_SERIAL_BAUD = 115200;
 

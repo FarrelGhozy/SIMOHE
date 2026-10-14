@@ -8,9 +8,12 @@ Panduan ini untuk siapa pun (manusia atau agent AI) yang mengerjakan repo ini.
 - **Aktuator**: heater (otomatis + safety + override app) & katup solenoid
   (manual dari aplikasi).
 - **Client**: Flutter (Android + Web).
-- **Backend**: Bun + TypeScript + Elysia.
-- **Database**: MySQL.
-- **Komunikasi IoT**: HTTP REST (ESP8266 → server).
+- **Backend**: Supabase (Postgres + Edge Functions + Cron). Server Bun +
+  TypeScript + Elysia lama **diarsipkan** ke `docs/reference/archive/server-bun-*/`
+  (lihat `docs/17-SUPABASE-MIGRATION.md`, `TODO.md` Fase 8).
+- **Database**: Postgres (Supabase, skema di `supabase/migrations/`).
+- **Komunikasi IoT**: HTTPS REST (ESP8266 → Supabase Edge Function
+  `/functions/v1/iot-ingest`).
 
 Baca `docs/00-PROJECT-OVERVIEW.md` dan `docs/README.md` sebelum mulai.
 
@@ -33,9 +36,11 @@ SIMOHE/                     # root = proyek Flutter
 │   └── shared/             # widget & model bersama
 ├── android/ web/           # platform Flutter (android + web)
 ├── docs/                   # SELURUH rancangan (sumber kebenaran desain)
+│   ├── 17-SUPABASE-MIGRATION.md # sumber kebenaran Fase 8 (aktif)
 │   └── reference/legacy/   # arsip proyek lama (jangan dipakai)
-├── server/                 # backend Bun + Elysia (placeholder → nanti)
-├── firmware/               # firmware Mega + ESP8266 (placeholder → nanti)
+├── supabase/               # backend Supabase (functions + migrations + seed)
+├── docs/reference/archive/server-bun-*/ # arsip server lama (jaga-jaga)
+├── firmware/               # firmware Mega + ESP8266 (lihat docs/04)
 ├── AGENTS.md               # file ini
 ├── TODO.md                 # fase & checklist pengerjaan
 └── pubspec.yaml
@@ -54,6 +59,7 @@ biarkan menyimpang.
 | Database | `docs/07-DATABASE-DESIGN.md` |
 | Aplikasi | `docs/08-FLUTTER-APP.md` |
 | Logika bisnis | `docs/09-BUSINESS-LOGIC.md` |
+| Migrasi Supabase (aktif) | `docs/17-SUPABASE-MIGRATION.md` |
 | Notifikasi | `docs/10-NOTIFICATIONS.md` |
 | Keamanan | `docs/11-SECURITY.md` |
 | Deployment | `docs/12-DEPLOYMENT.md` |
@@ -68,22 +74,23 @@ biarkan menyimpang.
 flutter pub get
 flutter analyze
 flutter test
-flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:3000
-flutter run --dart-define=API_BASE_URL=http://192.168.1.10:3000   # Android
+flutter run -d chrome --dart-define=SUPABASE_URL=https://<ref>.supabase.co --dart-define=SUPABASE_ANON_KEY=<anon>
+flutter run --dart-define=SUPABASE_URL=https://<ref>.supabase.co --dart-define=SUPABASE_ANON_KEY=<anon>   # Android
 flutter build apk
 flutter build web
 ```
 
-### Server (setelah dibuat)
+### Supabase (lihat docs/17, TODO Fase 8)
 ```bash
-cd server
-bun install
-bun run dev
-bun test
-bun run lint
-bun run typecheck
-bun run db:generate
-bun run db:migrate
+supabase link --project-ref <ref>
+supabase db push
+supabase functions deploy iot-ingest app-command app-settings app-batch jobs-tick
+```
+
+### Server lama (arsip, jangan dipakai)
+```bash
+# Kode ada di docs/reference/archive/server-bun-*/ hanya sebagai referensi porting.
+# Butuh Bun? cd docs/reference/archive/server-bun-2026-10-14 && bun install
 ```
 
 ### Firmware
@@ -111,7 +118,8 @@ kredensial (tidak di-commit). Bisa juga dibuka di Arduino IDE / PlatformIO.
 
 ## Aturan Penting (WAJIB)
 1. **Rahasia tidak masuk repo**: token, kredensial DB, `device_key` → `.env`
-   (lihat `.gitignore`). Sediakan `.env.example`.
+   (lihat `.gitignore`). Sediakan `.env.example`. `service_role` hanya di
+   Dashboard → Edge Functions → Secrets, tidak pernah di app/firmware/repo.
 2. **Jangan commit** `.env`, `build/`, `.dart_tool/`, atau artefak build.
 3. **Katup tidak boleh otomatis terbuka** saat pupuk matang — hanya manual dari
    aplikasi. Ini aturan desain keras.
@@ -121,10 +129,10 @@ kredensial (tidak di-commit). Bisa juga dibuka di Arduino IDE / PlatformIO.
    di `docs/`. Jangan biarkan dokumen usang.
 6. **Tambah dependensi secara sadar**: cek dulu apakah sudah ada di `pubspec.yaml`
    / `package.json`; hindari paket berlebihan. Catat alasan jika menambah.
-7. **Anggap hardware belum ada**: gunakan **device simulator** untuk menguji
-   server & aplikasi lebih dulu.
-8. **Single user tanpa login**: kendali akses backend via Bearer token, bukan
-   sistem akun.
+7. **Anggap hardware belum ada**: gunakan **device simulator**
+   (`supabase/tools/sim-curl.sh`) untuk menguji backend & aplikasi lebih dulu.
+8. **Single user tanpa login**: kendali akses backend via Supabase `anon key` +
+   RLS read-only + Edge Functions untuk tulis, bukan sistem akun.
 9. **UTC** untuk semua waktu di server/DB.
 10. Jangan menghapus folder `docs/reference/legacy/` (arsip).
 
@@ -137,6 +145,6 @@ kredensial (tidak di-commit). Bisa juga dibuka di Arduino IDE / PlatformIO.
 
 ## Definition of Done
 - Kode jelas, mengikuti konvensi, tanpa rahasia.
-- `flutter analyze` bersih dan/atau test server lulus.
+- `flutter analyze` bersih dan/atau test Edge Function lulus.
 - Dokumen terkait diperbarui bila perlu.
 - Checklist di `TODO.md` diperbarui.

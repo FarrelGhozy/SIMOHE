@@ -6,7 +6,7 @@ import '../../../shared/models/device_detail.dart';
 import '../data/device_repository.dart';
 
 final deviceRepositoryProvider = Provider<DeviceRepository>(
-  (ref) => DeviceRepository(ref.watch(apiClientProvider)),
+  (ref) => DeviceRepository(ref.watch(supabaseClientProvider)),
 );
 
 class DeviceNotifier extends AsyncNotifier<DeviceDetail> {

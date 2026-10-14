@@ -1,5 +1,9 @@
 # 13 — Testing Strategy
 
+> **Migrasi 2026-10-14 (Fase 8)**: bagian `Bun test`, simulator Bun, dan hasil
+> Fase 4/5/6 di bawah adalah **arsip pra-Supabase** (server lama di
+> `reference/archive/server-bun-2026-10-14/`). Verifikasi aktif: §12.
+
 ## Prinsip
 - Uji logika bisnis tanpa hardware dulu (server + simulator).
 - Hardware diuji belakangan dengan checklist HIL (hardware-in-the-loop).
@@ -272,4 +276,29 @@ terbaca (`temp_ok`/`nh3_ok` = true) setelah kalibrasi.
 
 **Status: sebagian lulus.** Bench per komponen & sisa checklist HIL menunggu
 proses wiring oleh pengguna.
+
+## 12. Verifikasi Supabase (Fase 8, menunggu project)
+
+Backend Bun diganti Edge Functions; matriks T1–T10 diuji ulang via
+`supabase/tools/sim-curl.sh` + aplikasi setelah project dibuat
+(`supabase/SETUP.md` §7). Checklist:
+
+- [ ] T1 suhu 27 °C → event `temp_low`
+- [ ] T2 suhu 36 °C → heater OFF
+- [ ] T3 suhu 46 °C → `temp_high` + `safety_cutoff`
+- [ ] T4 NH3 26 ppm ~29 mnt → belum matang (progress < 1)
+- [ ] T5 NH3 26 ppm ≥ 31 mnt → event `mature`, katup tetap tertutup
+- [ ] T6 `app-command valve_open` → `pending→sent→acked` (sim-curl meng-ack)
+- [ ] T7 command lewat TTL → `expired`
+- [ ] T8 event `SAFETY_CUTOFF` perangkat tersimpan (`sim-curl.sh safety`)
+- [ ] T9 tanpa ingest > 3× interval → `device_offline` (tunggu cron)
+- [ ] T10 ingest lagi → `device_online`
+- [ ] Sampling → `sensor_readings` bertambah per `history_interval_min`
+- [ ] App: katup dibuka/ditutup dari Control, tercatat di commands+events
+
+Yang sudah hijau tanpa cloud (2026-10-14):
+- `flutter analyze`: bersih; `flutter test`: 20/20 lulus.
+- ESP: `pio test -e native` 13/13 + `pio run -e esp` sukses.
+- Mega: `pio test -e native` 22/22 + `pio run -e mega` sukses.
+- Functions: `tsc --strict` bersih (kecuali resolusi `jsr:` runtime Deno).
 

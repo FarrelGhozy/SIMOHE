@@ -134,7 +134,7 @@ Legenda prioritas: `P0` wajib, `P1` penting, `P2` opsional.
 
 ---
 
-## Fase 7 — Deployment & Polish `P0`
+## Fase 7 — Deployment & Polish `P0` `[dibatalkan → diganti Fase 8]`
 - [ ] `server/Dockerfile` + `docker-compose.yml`
 - [ ] `Caddyfile` (HTTPS otomatis) + domain
 - [ ] Migrasi & seed di server produksi
@@ -143,6 +143,83 @@ Legenda prioritas: `P0` wajib, `P1` penting, `P2` opsional.
 - [ ] Backup DB terjadwal + uji restore
 - [ ] Monitoring health & log
 - [ ] README & dokumen final diperbarui
+> **Catatan 2026-10-14**: Fase 7 berbasis VPS/Docker **dibatalkan**. Backend
+> diganti ke **Supabase-only** (lihat Fase 8). Jangan kerjakan Fase 7.
+
+---
+
+## Fase 8 — Migrasi Supabase-only `P0` `[aktif]`
+Rujukan utama: `docs/17-SUPABASE-MIGRATION.md`. Prinsip: tidak overkill —
+3 Edge Functions saja, read langsung PostgREST, Realtime opsional dengan
+fallback polling. Katup WAJIB tetap bisa dipakai (pending→sent→acked).
+
+### 8.0 Arsip server lama (jaga-jaga, jangan hapus)
+- [x] `git mv server docs/reference/archive/server-bun-2026-10-14/`
+- [x] Pastikan `flutter analyze` + `pio test -e native` tetap hijau tanpa `server/`
+- [x] Catat commit hash server terakhir di `docs/17` § Arsip
+
+### 8.1 Supabase schema dari nol (Free tier)
+- [x] Buat project Supabase baru (region terdekat, mis. Singapore)
+- [x] Tulis `supabase/migrations/0001_init.sql` (porting `docs/07` MySQL→Postgres:
+      devices, latest_state, telemetry_raw, sensor_readings, settings,
+      commands (`id` uuid), events, batches; `timestamptz` UTC, `payload` jsonb,
+      index komposit)
+- [x] Enable RLS semua tabel; policy: `anon` hanya `SELECT`, write hanya
+      `service_role` (via Edge Function)
+- [x] Tulis `supabase/seed.sql` (1 device + settings default + batch fermenting)
+- [x] Verifikasi di SQL Editor: tabel + RLS aktif
+
+### 8.2 Edge Function `iot-ingest` (pengganti `POST /api/iot/ingest`)
+- [x] `supabase/functions/iot-ingest/index.ts` (Deno): auth `X-Device-Key`
+      (bandingkan hash sha256), validasi range (temp -20..120, nh3 0..1000,
+      body ≤16KB), format error `{ error: { code, message } }`
+- [x] Porting `maturity.ts` + `thermal.ts` + `event.ts` 1:1 (streak, progress,
+      event sekali per transisi, gap >3× ingest reset streak)
+- [x] Ambil commands `pending` belum expired → tandai `sent`; proses `acks` →
+      `acked` + event valve/heater
+- [x] Respons `{ server_time, config, commands, poll_after_sec }` (kontrak
+      `docs/05` tidak berubah)
+- [x] Set secrets: `DEVICE_KEY_HASH`, `SUPABASE_DB_*` bila perlu; deploy +
+      uji via `curl` (200, 400, 401)
+
+### 8.3 Edge Functions `app-command` / `app-settings` / `app-batch`
+- [x] `supabase/functions/app-command/`: whitelist action, clamp
+      `duration_min` 1..heaterMaxOnMin, `expires_at = now + command_ttl_sec`,
+      cancel hanya bila `pending` (409 bila tidak)
+- [x] `supabase/functions/app-settings/` + `app-batch/`: validasi batas wajar
+- [x] Uji: `valve_open` → `pending` → diambil ingest → `sent` → ack → `acked`
+
+### 8.4 Job `jobs-tick` + Cron (pengganti job in-process)
+- [x] `supabase/functions/jobs-tick/`: sampling (latest→readings bila
+      `history_interval_min` terlewati), offline-detector
+      (>3× ingest → `is_online=false` + event), command-expiry, retention
+- [x] Daftarkan Scheduled Cron tiap 1 menit (Dashboard → Edge Functions → Cron)
+- [x] Verifikasi: histori muncul, event offline/online, command expired
+
+### 8.5 Flutter → `supabase_flutter` (tanpa login)
+- [x] Tambah `supabase_flutter` ke `pubspec.yaml` (cek dulu, jangan dobel)
+- [x] Ganti `ApiClient` Dio → `SupabaseClient`: `SUPABASE_URL` +
+      `SUPABASE_ANON_KEY` via `--dart-define` (hapus `API_BASE_URL`/`APP_TOKEN`)
+- [x] Repository per fitur → PostgREST `select` (live, readings, events,
+      settings, commands, device, batches); write via `functions.invoke`
+- [x] Pertahankan polling 10/30/5 dtk sebagai fallback; tambah Realtime
+      subscribe (latest_state/events/commands) bila mudah
+- [x] `flutter analyze` + `flutter test` bersih
+
+### 8.6 Firmware ESP (minim, Mega jangan disentuh)
+- [x] `config.h`: `SIMOHE_INGEST_PATH` → `/functions/v1/iot-ingest`
+- [x] `api_client.cpp`: tambah header `apikey` + `Authorization: Bearer <anon>`,
+      `BASE_URL` → `https://<ref>.supabase.co` dari `secrets.h`
+      (`SIMOHE_BASE_URL`, `SIMOHE_ANON_KEY`, `SIMOHE_DEVICE_KEY`)
+- [x] Pertahankan buffer offline 8×1024, backoff, drop-400
+- [x] `pio test -e native` + `pio run -e esp` lulus
+
+### 8.7 Docs & rilis Supabase
+- [x] Update `docs/00,02,05,06,07,08,11,12,13,14` + `AGENTS.md` (Backend: Supabase)
+- [x] Tulis `supabase/SETUP.md` final (langkah dashboard → migration → secrets → cron)
+- [ ] Uji matriks T1–T10 `docs/13` via Edge Function + app (butuh project Supabase)
+- [ ] Build APK + Web dengan `--dart-define=SUPABASE_URL/PUBLISHABLE_KEY`
+- [ ] Backup terjadwal Supabase (daily backup / PITR) + uji restore
 
 ---
 

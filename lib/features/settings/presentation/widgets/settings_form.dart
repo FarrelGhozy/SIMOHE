@@ -177,9 +177,9 @@ class _SettingsFormState extends ConsumerState<SettingsForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Base URL', style: theme.textTheme.labelMedium),
+              Text('Supabase URL', style: theme.textTheme.labelMedium),
               const SizedBox(height: 2),
-              SelectableText(AppConfig.apiBaseUrl),
+              SelectableText(AppConfig.supabaseUrl),
             ],
           ),
         ),

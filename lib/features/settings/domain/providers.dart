@@ -5,7 +5,7 @@ import '../../../shared/models/settings.dart';
 import '../data/settings_repository.dart';
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
-  (ref) => SettingsRepository(ref.watch(apiClientProvider)),
+  (ref) => SettingsRepository(ref.watch(supabaseClientProvider)),
 );
 
 class SettingsNotifier extends AsyncNotifier<AppSettings> {

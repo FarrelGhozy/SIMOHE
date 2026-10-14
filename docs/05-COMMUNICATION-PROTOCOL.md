@@ -72,12 +72,15 @@ Mega membalas dengan telemetry (`seq` increment agar tetap monoton).
 - `seq` naik monoton (termasuk balasan ping); berguna mendeteksi kehilangan frame.
 - Mega membalas `ping` dengan telemetry terbaru.
 
-## 2. HTTP ESP ↔ Server
+## 2. HTTP ESP ↔ Supabase
 
-### `POST /api/iot/ingest`
+### `POST /functions/v1/iot-ingest`
+Base URL: `https://<ref>.supabase.co` (wajib HTTPS).
 Header:
 ```
 Content-Type: application/json
+apikey: <SUPABASE_PUBLISHABLE_KEY>
+Authorization: Bearer <SUPABASE_PUBLISHABLE_KEY>
 X-Device-Key: <device_key>
 ```
 
@@ -141,37 +144,42 @@ Catatan:
 | Status | Arti |
 |---|---|
 | 200 | OK |
-| 202 | Diterima, tapi belum diproses (jarang) |
 | 400 | Payload tidak valid |
-| 401 | `X-Device-Key` salah/tidak ada |
-| 429 | Rate limit (device terlalu sering) |
-| 5xx | Kesalahan server; ESP retry dengan backoff |
+| 401 | `X-Device-Key` salah/tidak ada, atau kunci Supabase salah |
+| 429 | Rate limit (device terlalu sering, ~1 req/detik) |
+| 5xx | Kesalahan function; ESP retry dengan backoff |
 
 ### Backoff ESP
 - Gagal kirim → retry 2s, 4s, 8s, 16s, 32s, maks 60s.
 - Buffer offline: 8 frame ingest penuh (`8x1024`). Replay maks 5/ingest.
 - `400` tidak di-retry/di-buffer (payload busuk dibuang); `429/5xx`/gagal koneksi di-buffer.
 
-## 3. HTTP Aplikasi ↔ Server (ringkas)
-- Auth: `Authorization: Bearer <APP_TOKEN>`.
-- Live: `GET /api/live` (polling 10s).
-- Events: `GET /api/events?unread=true` (polling 30–60s).
-- Kontrol: `POST /api/commands`.
-- Histori: `GET /api/readings`.
-- Pengaturan: `GET/PUT /api/settings`.
+## 3. HTTP Aplikasi ↔ Supabase (ringkas)
+- Tanpa login: publishable key + RLS read-only.
+- Live: gabungan `devices` + `latest_state` + `settings` (PostgREST) +
+  Realtime `latest_state` (fallback polling 10s).
+- Events: tabel `events` (polling 30s + Realtime); tandai dibaca via UPDATE
+  `is_read` (dibatasi trigger, lihat migrasi `0002`).
+- Kontrol: Edge Function `app-command` (POST command + cancel).
+- Histori: `sensor_readings` (`15m`) / `telemetry_raw` (`raw`); bucket `1h`
+  diagregasi di aplikasi.
+- Pengaturan: baca tabel `settings`, tulis via Edge Function `app-settings`.
 
 Detail lengkap di `06-BACKEND-API.md`.
 
 ## 4. Contoh Uji Cepat (tanpa hardware)
 ```bash
-# Simulasi ingest
-curl -X POST http://localhost:3000/api/iot/ingest \
+# Simulasi ingest (lihat juga supabase/tools/sim-curl.sh)
+curl -X POST https://<ref>.supabase.co/functions/v1/iot-ingest \
   -H 'Content-Type: application/json' \
-  -H 'X-Device-Key: DEVKEY123' \
+  -H 'apikey: <PUBLISHABLE_KEY>' \
+  -H 'Authorization: Bearer <PUBLISHABLE_KEY>' \
+  -H 'X-Device-Key: <DEVICE_KEY>' \
   -d '{"seq":1,"telemetry":{"temp_c":29.5,"nh3_ppm":12.1,"heater":false,"valve":false,"mode":"AUTO"}}'
 
-# Baca live (app token)
-curl http://localhost:3000/api/live -H 'Authorization: Bearer APPT0KEN'
+# Baca live (publishable key, RLS read-only)
+curl 'https://<ref>.supabase.co/rest/v1/latest_state?select=*' \
+  -H 'apikey: <PUBLISHABLE_KEY>' -H 'Authorization: Bearer <PUBLISHABLE_KEY>'
 ```
 
 ## 5. Versi Protokol

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/network/providers.dart';
@@ -9,11 +10,12 @@ import '../../../shared/models/enums.dart';
 import '../data/control_repository.dart';
 
 final controlRepositoryProvider = Provider<ControlRepository>(
-  (ref) => ControlRepository(ref.watch(apiClientProvider)),
+  (ref) => ControlRepository(ref.watch(supabaseClientProvider)),
 );
 
 class CommandsNotifier extends AsyncNotifier<List<Command>> {
   Timer? _timer;
+  RealtimeChannel? _channel;
 
   @override
   Future<List<Command>> build() async {
@@ -22,7 +24,30 @@ class CommandsNotifier extends AsyncNotifier<List<Command>> {
       (_) => _poll(),
     );
     ref.onDispose(() => _timer?.cancel());
+    _subscribeRealtime();
     return ref.read(controlRepositoryProvider).getCommands();
+  }
+
+  /// Realtime sebagai pelengkap polling; diabaikan bila Supabase belum
+  /// siap (mis. unit test) — polling tetap jalan sebagai fallback.
+  void _subscribeRealtime() {
+    try {
+      final client = ref.read(supabaseClientProvider);
+      _channel = client.channel('commands-feed')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'commands',
+          callback: (_) => _poll(),
+        )
+        ..subscribe();
+      ref.onDispose(() {
+        final channel = _channel;
+        if (channel != null) unawaited(client.removeChannel(channel));
+      });
+    } on Object {
+      _channel = null;
+    }
   }
 
   Future<void> _poll() async {
