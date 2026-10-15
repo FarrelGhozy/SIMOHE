@@ -13,8 +13,8 @@ select cron.schedule(
     url := 'https://<PROJECT_REF>.supabase.co/functions/v1/jobs-tick',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'apikey', '<SUPABASE_ANON_KEY>',
-      'Authorization', 'Bearer <SUPABASE_ANON_KEY>',
+      'apikey', '<SUPABASE_PUBLISHABLE_KEY>',
+      'Authorization', 'Bearer <SUPABASE_PUBLISHABLE_KEY>',
       'x-app-key', '<APP_WRITE_KEY_JIKA_DISET>'
     ),
     body := '{}'::jsonb

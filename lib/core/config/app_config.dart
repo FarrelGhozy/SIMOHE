@@ -10,7 +10,7 @@ class AppConfig {
   /// URL project Supabase (contoh: https://xyzcompany.supabase.co).
   static const String supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
-    defaultValue: 'https://placeholder.supabase.co',
+    defaultValue: 'https://<ref>.supabase.co',
   );
 
   /// Publishable/anon key Supabase (boleh disematkan di app; RLS read-only).

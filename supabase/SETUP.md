@@ -61,7 +61,7 @@ Atau Dashboard → **Edge Functions → New Function**, paste tiap
 
 1. Aktifkan ekstensi **pg_cron** + **pg_net**:
    Dashboard → **Database → Extensions** → enable keduanya.
-2. Di `supabase/cron.sql`, ganti `<PROJECT_REF>`, `<SUPABASE_ANON_KEY>`
+2. Di `supabase/cron.sql`, ganti `<PROJECT_REF>`, `<SUPABASE_PUBLISHABLE_KEY>`
    (isi publishable key), `<APP_WRITE_KEY_JIKA_DISET>` (hapus baris header
    bila tidak diset), lalu jalankan di SQL Editor.
 3. Cek: `select * from cron.job;` → ada `simohe-jobs-tick` tiap menit.
@@ -70,7 +70,7 @@ Atau Dashboard → **Edge Functions → New Function**, paste tiap
 
 ```bash
 export SUPABASE_URL=https://<ref>.supabase.co
-export SUPABASE_ANON_KEY=<publishable-key>
+export SUPABASE_PUBLISHABLE_KEY=<publishable-key>
 export DEVICE_KEY=<32-char-plaintext>
 
 # ingest normal + ack otomatis
@@ -84,7 +84,7 @@ export DEVICE_KEY=<32-char-plaintext>
 
 # tulis via functions (ganti <id-command> setelah create)
 curl -s -X POST "$SUPABASE_URL/functions/v1/app-command" \
-  -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+  -H "apikey: $SUPABASE_PUBLISHABLE_KEY" -H "Authorization: Bearer $SUPABASE_PUBLISHABLE_KEY" \
   -H 'Content-Type: application/json' \
   -d '{"action":"valve_open"}'
 ```

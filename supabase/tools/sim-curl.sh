@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 # sim-curl.sh — Simulator ingest sementara pengganti server/tools/simulator.ts.
 # Mengirim telemetry ke Edge Function iot-ingest + meng-ack commands.
-# Butuh: SUPABASE_URL, SUPABASE_ANON_KEY, DEVICE_KEY di environment.
+# Butuh: SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY (fallback SUPABASE_ANON_KEY), DEVICE_KEY di environment.
 #
-#   SUPABASE_URL=https://<ref>.supabase.co SUPABASE_ANON_KEY=<anon> \
+#   SUPABASE_URL=https://<ref>.supabase.co SUPABASE_PUBLISHABLE_KEY=<publishable> \
 #     DEVICE_KEY=<key> ./sim-curl.sh normal [jumlah] [jeda_detik]
 # Skenario: normal | mature | overheat | offline
 set -euo pipefail
 
 : "${SUPABASE_URL:?isi SUPABASE_URL}"
-: "${SUPABASE_ANON_KEY:?isi SUPABASE_ANON_KEY}"
+# Terima nama baru maupun lama.
+SUPABASE_PUBLISHABLE_KEY="${SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_ANON_KEY:-}}"
+: "${SUPABASE_PUBLISHABLE_KEY:?isi SUPABASE_PUBLISHABLE_KEY (atau SUPABASE_ANON_KEY)}"
 : "${DEVICE_KEY:?isi DEVICE_KEY}"
 
 SCENARIO="${1:-normal}"
@@ -23,7 +25,7 @@ ingest() {
   local temp_c="$1" nh3="$2" heater="$3" extra_events="$4"
   local acks_json="[]"
   if [ -n "$PENDING_ACKS" ]; then
-    acks_json=$(printf '%s' "$PENDING_ACKS" | tr ' ' '\n' | sed 's/^\(.*\)$/{"id":"\1","ok":true}/' | paste -sd, - | sed 's/^/[/;s/$/]/')
+    acks_json=$(printf '%s' "$PENDING_ACKS" | tr ' ' '\n' | grep -v '^$' | sed 's/^\(.*\)$/{"id":"\1","ok":true}/' | paste -sd, - | sed 's/^/[/;s/$/]/')
     PENDING_ACKS=""
   fi
   local body
@@ -35,8 +37,8 @@ EOF
   local resp
   resp=$(curl -s -X POST "$BASE" \
     -H "Content-Type: application/json" \
-    -H "apikey: $SUPABASE_ANON_KEY" \
-    -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+    -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+    -H "Authorization: Bearer $SUPABASE_PUBLISHABLE_KEY" \
     -H "X-Device-Key: $DEVICE_KEY" \
     -d "$body")
   echo "$resp" | head -c 600; echo

@@ -199,7 +199,7 @@ fallback polling. Katup WAJIB tetap bisa dipakai (pending→sent→acked).
 ### 8.5 Flutter → `supabase_flutter` (tanpa login)
 - [x] Tambah `supabase_flutter` ke `pubspec.yaml` (cek dulu, jangan dobel)
 - [x] Ganti `ApiClient` Dio → `SupabaseClient`: `SUPABASE_URL` +
-      `SUPABASE_ANON_KEY` via `--dart-define` (hapus `API_BASE_URL`/`APP_TOKEN`)
+      `SUPABASE_PUBLISHABLE_KEY` via `--dart-define` (hapus `API_BASE_URL`/`APP_TOKEN`)
 - [x] Repository per fitur → PostgREST `select` (live, readings, events,
       settings, commands, device, batches); write via `functions.invoke`
 - [x] Pertahankan polling 10/30/5 dtk sebagai fallback; tambah Realtime

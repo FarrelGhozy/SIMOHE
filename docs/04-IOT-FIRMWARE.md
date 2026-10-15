@@ -78,8 +78,8 @@ Rincian ada di `03-HARDWARE-AND-WIRING.md`.
 - ESP8266: `ESP8266WiFi`, `ESP8266HTTPClient`, `ArduinoJson` (v6).
 - Bersama: `common/simohe_core` (logika, codec, gas, waktu).
 
-## Sensor Suhu — DS18B20
-- Bus OneWire di pin 2, pull-up 4.7 kΩ.
+## Sensor Suhu — Modul DS18B20
+- Bus OneWire di pin 2 via modul adapter langsung, tanpa resistor eksternal (pull-up sudah onboard).
 - Resolusi 12-bit (±0.0625 °C) diset eksplisit; baca tidak lebih dari 1×/detik.
 - Bila pembacaan `-127 °C` atau `85 °C`, anggap gagal; jangan pakai nilainya.
 - Terapkan filter rata-rata bergerak (5 sampel) untuk meredam noise.

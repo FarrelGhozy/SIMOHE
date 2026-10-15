@@ -50,6 +50,7 @@ server/dist/
 *.key
 # Supabase: service_role key hanya di Dashboard → Edge Functions → Secrets.
 # supabase/.env tidak di-commit; supabase/.env.example boleh.
+supabase/.temp/
 
 # --- Firmware ---
 firmware/**/build/

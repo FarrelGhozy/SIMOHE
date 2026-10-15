@@ -74,8 +74,8 @@ biarkan menyimpang.
 flutter pub get
 flutter analyze
 flutter test
-flutter run -d chrome --dart-define=SUPABASE_URL=https://<ref>.supabase.co --dart-define=SUPABASE_ANON_KEY=<anon>
-flutter run --dart-define=SUPABASE_URL=https://<ref>.supabase.co --dart-define=SUPABASE_ANON_KEY=<anon>   # Android
+flutter run -d chrome --dart-define=SUPABASE_URL=https://<ref>.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable>
+flutter run --dart-define=SUPABASE_URL=https://<ref>.supabase.co --dart-define=SUPABASE_PUBLISHABLE_KEY=<publishable>   # Android
 flutter build apk
 flutter build web
 ```
@@ -86,6 +86,19 @@ supabase link --project-ref <ref>
 supabase db push
 supabase functions deploy iot-ingest app-command app-settings app-batch jobs-tick
 ```
+
+### Env lokal Supabase (`.env.local`, gitignored — jangan di-commit)
+Semua kredensial cloud tersimpan di `.env.local` (root repo, `chmod 600`).
+Muat dulu sebelum perintah Supabase/Flutter:
+```bash
+set -a; source .env.local; set +a
+flutter run -d chrome --dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" --dart-define=APP_WRITE_KEY="$APP_WRITE_KEY"
+SUPABASE_ACCESS_TOKEN="$SUPABASE_ACCESS_TOKEN" supabase link --project-ref "$SUPABASE_PROJECT_REF"
+```
+Isi: `SUPABASE_URL`, `SUPABASE_PROJECT_REF`, `SUPABASE_PUBLISHABLE_KEY`,
+`DEVICE_KEY` (+ `DEVICE_KEY_HASH`), `APP_WRITE_KEY`, `SUPABASE_ACCESS_TOKEN`,
+`SUPABASE_SERVICE_ROLE_KEY`. Token sensitif (access/service_role/device)
+jangan pernah di-paste ke chat/log — tulis langsung ke file.
 
 ### Server lama (arsip, jangan dipakai)
 ```bash
