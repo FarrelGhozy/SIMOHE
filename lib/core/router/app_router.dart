@@ -47,7 +47,10 @@ final GoRouter appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/notifications',
-              builder: (context, state) => const NotificationsScreen(),
+              builder: (context, state) => NotificationsScreen(
+                highlightId:
+                    int.tryParse(state.uri.queryParameters['id'] ?? ''),
+              ),
             ),
           ],
         ),

@@ -80,7 +80,10 @@ features/<nama>/
 - Badge status pupuk: `fermenting` / `mature` / `draining`.
 - Status perangkat (online/offline, `last_seen`).
 - Status heater & katup + tombol kontrol cepat.
-- Mini chart tren 24 jam.
+- Mini chart tren 24 jam — ikut polling + Realtime `sensor_readings`, dan
+  tombol/pull-to-refresh dashboard menyegarkan angka live **dan** tren
+  sekaligus. Titik dicatat tiap `history_interval_min` (default 15 mnt)
+  sehingga gerak grafik lebih lambat dari angka live (lihat catatan di kartu).
 
 ### 2. History
 - Pemilih rentang: 24 jam / 7 hari / 30 hari.
@@ -95,12 +98,25 @@ features/<nama>/
   menampilkan status safety.
 
 ### 4. Notifications
-- Daftar event, filter belum dibaca, badge jumlah.
-- Tandai dibaca / tandai semua.
-- Notifikasi "matang" diberi penekanan khusus.
+- Daftar event, filter belum dibaca (tersimpan lokal), badge jumlah.
+- Tap event membuka **bottom sheet detail**: ikon, jenis, severity, pesan,
+  waktu, `payload` ringkas, status dibaca, dan tombol aksi kontekstual
+  (mis. `mature` → Kontrol, offline → Perangkat).
+- Menandai dibaca bersifat optimistik (dot hilang seketika) + umpan balik
+  "Ditandai dibaca"; "Tandai semua" memakai dialog konfirmasi + SnackBar.
+- **Notifikasi sistem lokal** (Android) via `flutter_local_notifications`:
+  event baru (`id` > `notif.last_seen_event_id`) memunculkan notifikasi tray.
+  Tap notifikasi membuka `/notifications?id=<id>` lalu sheet detail.
+  Hanya saat aplikasi berjalan (FCM untuk app tertutup = backlog).
 
 ### 5. Settings
-- Interval sampling (15 menit default), interval ingest.
+- **Aplikasi — ambil data** (lokal, `shared_preferences`): interval Live
+  (5/10/15/30 dtk), Notifikasi (15/30/60/120 dtk), Status perintah
+  (3/5/10/15 dtk), Tren dashboard (30/60/120/300/900 dtk). Mengatur frekuensi
+  polling app; berbeda dari "Interval" server di bawah.
+- **Notifikasi** (lokal): aktif/nonaktif notifikasi sistem + opsi hanya
+  peringatan & bahaya ke atas.
+- Interval sampling (15 menit default), interval ingest (server/device).
 - Ambang suhu min/max & hysteresis.
 - Ambang NH3 matang & durasi tahan.
 - Mode heater & batas safety.
@@ -159,10 +175,13 @@ class EventItem {
 3. Baca via PostgREST (`devices`, `latest_state`, `settings`, `events`,
    `commands`, `sensor_readings`/`telemetry_raw`, `batches`); tulis via
    `functions.invoke('app-command'|'app-settings'|'app-batch')`.
-4. Realtime subscribe (`latest_state`, `events`, `commands`) + polling
-   10/30/5 dtk sebagai fallback; error → `ApiException.fromSupabase`.
+4. Realtime subscribe (`latest_state`, `sensor_readings`, `events`,
+   `commands`) + polling (interval dari Pengaturan Aplikasi, default
+   10/30/5/60 dtk) sebagai fallback; error → `ApiException.fromSupabase`.
 5. Cache lokal nilai `live` untuk mode offline.
 6. Agregasi `1h` dan ringkasan dihitung di klien dari data `15m`.
+7. Notifikasi sistem lokal (Android) membandingkan `id` event baru terhadap
+   `notif.last_seen_event_id` (shared_preferences) agar tidak dobel.
 
 ## Web vs Android
 - **Android**: notifikasi lokal via `flutter_local_notifications`; akses network
@@ -190,15 +209,23 @@ flutter run --dart-define=SUPABASE_URL=https://<ref>.supabase.co \
 - Model `freezed` memetakan langsung kontrak `docs/06` (snake_case lewat
   `@JsonKey`, enum lewat `@JsonValue`); file `.freezed.dart`/`.g.dart`
   di-generate dan ikut di-commit.
-- Polling live tiap 10 detik dan events tiap 30 detik via `Timer.periodic`
-  di dalam notifier Riverpod; status perintah (pending→sent→acked) di-poll tiap
-  5 detik. Timer dibatalkan saat provider dispose.
+- Polling live (default 10 dtk), tren dashboard (default 60 dtk), events
+  (default 30 dtk), dan status perintah (default 5 dtk) via `Timer.periodic`
+  di dalam notifier Riverpod; interval dapat diubah dari Pengaturan →
+  Aplikasi (lokal, `shared_preferences`), timer di-restart lewat
+  `ref.listen(refreshSettingsProvider)`. Timer dibatalkan saat provider
+  dispose.
 - Cache offline hanya untuk nilai `live` (`shared_preferences`), dipakai bila
   request gagal karena jaringan.
 - Ekspor CSV memakai `package:web` di web dan melempar `UnsupportedError` di
   platform non-web.
-- Notifikasi lokal (`flutter_local_notifications`) **ditunda** (lihat backlog);
-  notifikasi in-app (badge jumlah + daftar event) sudah tersedia.
+- Notifikasi lokal sistem (`flutter_local_notifications`, Android) dipakai
+  untuk event baru saat aplikasi berjalan; permission `POST_NOTIFICATIONS`
+  diminta saat init. Web memakai badge + daftar in-app (notifikasi sistem web
+  belum diaktifkan). FCM untuk app tertutup tetap di backlog.
+- Preferensi lokal (interval refresh, notifikasi, filter belum dibaca)
+  disimpan di `shared_preferences` (`prefs.*`); cache offline `live` tetap
+  `cache.live_state`.
 
 ## Aset & Branding
 - Aset brand: `assets/branding/emblem.png` dan `logo_monochrome.png`. Nama aset

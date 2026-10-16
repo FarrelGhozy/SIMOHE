@@ -21,7 +21,7 @@ dan **kadar gas amonia (NH3)**, mendeteksi **kematangan pupuk** dan memberi
 APK Android siap pakai (tidak perlu build sendiri) tersedia di halaman Release:
 
 - **Rilis terbaru**: <https://github.com/FarrelGhozy/SIMOHE/releases/latest>
-- **v1.0.0 langsung**: <https://github.com/FarrelGhozy/SIMOHE/releases/download/v1.0.0/app-release.apk>
+- **v1.0.1 langsung**: <https://github.com/FarrelGhozy/SIMOHE/releases/download/v1.0.1/app-release.apk>
 
 Cara pasang di Android:
 1. Unduh `app-release.apk` dari HP tujuan (atau salin filenya ke HP).

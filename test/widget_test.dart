@@ -77,6 +77,11 @@ class _StubSettingsNotifier extends SettingsNotifier {
   Future<AppSettings> build() async => _sampleSettings;
 }
 
+class _StubTrendNotifier extends DashboardTrendNotifier {
+  @override
+  Future<List<ReadingPoint>> build() async => const <ReadingPoint>[];
+}
+
 void main() {
   testWidgets('Shell menampilkan navigasi utama', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -94,9 +99,7 @@ void main() {
           liveProvider.overrideWith(_StubLiveNotifier.new),
           eventsProvider.overrideWith(_StubEventsNotifier.new),
           settingsProvider.overrideWith(_StubSettingsNotifier.new),
-          dashboardTrendProvider.overrideWith(
-            (ref) async => <ReadingPoint>[],
-          ),
+          dashboardTrendProvider.overrideWith(_StubTrendNotifier.new),
         ],
         child: const SimoheApp(),
       ),

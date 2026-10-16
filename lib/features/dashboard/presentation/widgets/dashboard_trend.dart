@@ -5,6 +5,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/section_card.dart';
 import '../../../../shared/widgets/trend_chart.dart';
+import '../../../settings/domain/providers.dart';
 import '../../domain/providers.dart';
 
 class DashboardTrend extends ConsumerWidget {
@@ -15,9 +16,16 @@ class DashboardTrend extends ConsumerWidget {
     final theme = Theme.of(context);
     final status = AppStatusColors.of(context);
     final trend = ref.watch(dashboardTrendProvider);
+    final sampleMinutes =
+        ref.watch(settingsProvider).asData?.value.historyIntervalMin;
 
     return SectionCard(
       title: 'Tren 24 jam',
+      trailing: IconButton(
+        tooltip: 'Muat ulang tren',
+        icon: const Icon(Icons.refresh),
+        onPressed: () => ref.read(dashboardTrendProvider.notifier).refresh(),
+      ),
       child: trend.when(
         loading: () => const SizedBox(
           height: 200,
@@ -65,6 +73,13 @@ class DashboardTrend extends ConsumerWidget {
                   _LegendDot(color: status.warning, label: 'NH3'),
                 ],
               ),
+              if (sampleMinutes != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Titik grafik dicatat tiap $sampleMinutes menit (pengaturan server).',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
             ],
           );
         },

@@ -223,6 +223,25 @@ fallback polling. Katup WAJIB tetap bisa dipakai (pending→sent→acked).
 
 ---
 
+## Revisi Aplikasi — Refresh & Notifikasi `[selesai]`
+- [x] Dashboard: tren 24 jam jadi `AsyncNotifier` (polling + Realtime
+      `sensor_readings`), ikut tombol/pull-to-refresh dan `ref.listen`
+      perubahan interval
+- [x] Pengaturan → Aplikasi: interval ambil data (Live/Notifikasi/Perintah/Tren)
+      tersimpan lokal (`shared_preferences`), diterapkan ke semua notifier
+- [x] Notifikasi sistem lokal Android (`flutter_local_notifications`) untuk
+      event baru + permission `POST_NOTIFICATIONS` + desugaring Gradle
+- [x] Preferensi notifikasi lokal (aktif/nonaktif, hanya warning ke atas)
+- [x] Tap notifikasi → bottom sheet detail + aksi kontekstual + umpan balik
+      "ditandai dibaca"; "tandai semua" berkonfirmasi; filter belum dibaca
+      disimpan; empty state lebih jelas
+- [x] Deep link `/notifications?id=<id>` dari tap notifikasi sistem
+- [x] Unit/widget test baru; `flutter analyze` + `flutter test` bersih
+- [ ] Verifikasi di perangkat Android (notifikasi tray + permission) — butuh
+      build fisik
+
+---
+
 ## Backlog / Peningkatan `P2`
 - [ ] Login multi-user + role (admin/operator)
 - [ ] Push notification (FCM / Web Push)

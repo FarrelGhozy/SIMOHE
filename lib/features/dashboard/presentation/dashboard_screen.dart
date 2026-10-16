@@ -15,6 +15,13 @@ import 'widgets/sensor_metrics.dart';
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
+  Future<void> _refreshAll(WidgetRef ref) async {
+    await Future.wait([
+      ref.read(liveProvider.notifier).refresh(),
+      ref.read(dashboardTrendProvider.notifier).refresh(),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final live = ref.watch(liveProvider);
@@ -32,15 +39,15 @@ class DashboardScreen extends ConsumerWidget {
           IconButton(
             tooltip: 'Muat ulang',
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.read(liveProvider.notifier).refresh(),
+            onPressed: () => _refreshAll(ref),
           ),
         ],
       ),
       body: AsyncValueView<LiveState>(
         value: live,
-        onRetry: () => ref.read(liveProvider.notifier).refresh(),
+        onRetry: () => _refreshAll(ref),
         builder: (data) => RefreshIndicator(
-          onRefresh: () => ref.read(liveProvider.notifier).refresh(),
+          onRefresh: () => _refreshAll(ref),
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [

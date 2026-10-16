@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../core/config/app_config.dart';
+import '../../../core/config/refresh_settings.dart';
 import '../../../core/network/providers.dart';
 import '../../../shared/models/command.dart';
 import '../../../shared/models/enums.dart';
@@ -19,13 +19,17 @@ class CommandsNotifier extends AsyncNotifier<List<Command>> {
 
   @override
   Future<List<Command>> build() async {
-    _timer = Timer.periodic(
-      const Duration(seconds: AppConfig.commandPollIntervalSeconds),
-      (_) => _poll(),
-    );
+    _restartTimer();
+    ref.listen(refreshSettingsProvider, (_, _) => _restartTimer());
     ref.onDispose(() => _timer?.cancel());
     _subscribeRealtime();
     return ref.read(controlRepositoryProvider).getCommands();
+  }
+
+  void _restartTimer() {
+    _timer?.cancel();
+    final interval = ref.read(refreshSettingsProvider).command;
+    _timer = Timer.periodic(interval, (_) => _poll());
   }
 
   /// Realtime sebagai pelengkap polling; diabaikan bila Supabase belum

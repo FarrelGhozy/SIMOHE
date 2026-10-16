@@ -6,6 +6,8 @@ import '../../../../core/network/api_exception.dart';
 import '../../../../shared/models/settings.dart';
 import '../../../../shared/widgets/section_card.dart';
 import '../../domain/providers.dart';
+import 'app_refresh_card.dart';
+import 'notification_prefs_card.dart';
 
 class SettingsForm extends ConsumerStatefulWidget {
   const SettingsForm({super.key, required this.settings});
@@ -111,6 +113,10 @@ class _SettingsFormState extends ConsumerState<SettingsForm> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        const AppRefreshCard(),
+        const SizedBox(height: 12),
+        const NotificationPrefsCard(),
+        const SizedBox(height: 12),
         SectionCard(
           title: 'Interval',
           child: Column(

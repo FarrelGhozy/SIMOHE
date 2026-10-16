@@ -6,7 +6,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'core/config/app_config.dart';
 import 'core/network/providers.dart';
+import 'core/router/app_router.dart';
 import 'core/utils/formatters.dart';
+import 'features/notifications/data/local_notification_service.dart';
+import 'features/notifications/domain/providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,10 +19,17 @@ Future<void> main() async {
     publishableKey: AppConfig.supabasePublishableKey,
   );
   final preferences = await SharedPreferences.getInstance();
+
+  final localNotifications = LocalNotificationService();
+  localNotifications.onSelect = (eventId) =>
+      appRouter.go('/notifications?id=$eventId');
+  await localNotifications.init();
+
   runApp(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(preferences),
+        localNotificationServiceProvider.overrideWithValue(localNotifications),
       ],
       child: const SimoheApp(),
     ),
