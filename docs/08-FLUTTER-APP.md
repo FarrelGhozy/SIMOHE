@@ -68,9 +68,12 @@ features/<nama>/
 - Shell dengan navigasi adaptif:
   - Lebar < 700 px → **NavigationBar** (bawah), 5 tab.
   - Lebar ≥ 700 px → **NavigationRail** (samping).
-- Rute: `/dashboard`, `/history`, `/control`, `/notifications`, `/settings`,
-  `/device`.
-- Deep link web didukung.
+- Rute shell: `/dashboard`, `/history`, `/control`, `/analysis`,
+  `/settings`. Tab **Analisis** (ikon tabung `science_outlined`)
+  menggantikan tab Notifikasi.
+- `/notifications` adalah rute penuh di luar shell (seperti `/device`),
+  dibuka lewat ikon lonceng di AppBar semua tab utama. Tap item tetap
+  membuka bottom sheet detail. Deep link web didukung.
 
 ## Layar
 
@@ -97,7 +100,23 @@ features/<nama>/
 - **Heater**: switch mode AUTO / FORCE ON (dengan durasi) / FORCE OFF,
   menampilkan status safety.
 
-### 4. Notifications
+### 4. Analisis (pengganti tab Notifikasi)
+- % **stabilitas gelombang NH3** ("tabung makin pipih = makin stabil")
+  sebagai indikator kematangan, dihitung full di HP dari `telemetry_raw`
+  dalam window (fallback `sensor_readings`): `lib/features/analysis/`.
+- Pengaturan lokal: window (15/30/60/120 mnt), ambang matang % (50–98),
+  toleransi tabung ppm, cek otomatis. Rumus: `0.65*skorRange + 0.35*skorStd`.
+- Fail-safe: nilai nol / banyak null / data identik persis / perangkat
+  offline / sensor error → TIDAK dinilai matang, TIDAK ada notifikasi.
+- Notifikasi lokal sekali per periode stabil (re-arm bila % turun 5 poin).
+- Rekapan ringkas tampil di Dashboard (`StabilityRecap`).
+- Katup tetap manual — matang tidak pernah membuka katup otomatis.
+
+### 5. Notifications (lewat lonceng top bar)
+- TIDAK lagi tab utama. Widget bersama `NotificationBell`
+  (`shared/widgets/notification_bell.dart`, badge unread) dipasang di
+  AppBar Dashboard, Riwayat, Kontrol, Analisis, Pengaturan; ketuk →
+  `push('/notifications')` (rute root, ada tombol kembali).
 - Daftar event, filter belum dibaca (tersimpan lokal), badge jumlah.
 - Tap event membuka **bottom sheet detail**: ikon, jenis, severity, pesan,
   waktu, `payload` ringkas, status dibaca, dan tombol aksi kontekstual
@@ -109,7 +128,7 @@ features/<nama>/
   Tap notifikasi membuka `/notifications?id=<id>` lalu sheet detail.
   Hanya saat aplikasi berjalan (FCM untuk app tertutup = backlog).
 
-### 5. Settings
+### 6. Settings
 - **Aplikasi — ambil data** (lokal, `shared_preferences`): interval Live
   (5/10/15/30 dtk), Notifikasi (15/30/60/120 dtk), Status perintah
   (3/5/10/15 dtk), Tren dashboard (30/60/120/300/900 dtk). Mengatur frekuensi

@@ -242,8 +242,22 @@ fallback polling. Katup WAJIB tetap bisa dipakai (pending→sent→acked).
 
 ---
 
-## Backlog / Peningkatan `P2`
-- [ ] Login multi-user + role (admin/operator)
+## Fitur Analisis Stabilitas NH3 `[sebagian]`
+- [x] Tab navbar Notifikasi → Analisis (ikon tabung `science_outlined`)
+- [x] Lonceng notifikasi di top bar semua tab utama (`NotificationBell`)
+- [x] `/notifications` jadi rute root (luar shell) + detail bottom sheet tetap
+- [x] Kalkulator stabilitas client-only (`stability_calc`) + unit test
+- [x] Guard nol/null/mac et/offline/error → tanpa notifikasi
+- [x] Pengaturan lokal window/ambang/toleransi/cek-otomatis
+- [x] Grafik gelombang + dinding tabung + rekapan Dashboard
+- [x] Ikon launcher adaptive diperbaiki (foreground rusak → tile full-color)
+- [ ] Kalibrasi lapangan 3–5 hari (tentukan default `range_max`/`threshold`)
+- [ ] Nonaktifkan logika matang ambang lama di `iot-ingest` setelah kalibrasi
+- [ ] Verifikasi di perangkat Android (ikon terinstal + notifikasi tray)
+
+---
+
+## Backlog / Peningkatan `P2`- [ ] Login multi-user + role (admin/operator)
 - [ ] Push notification (FCM / Web Push)
 - [ ] Realtime live via SSE/WebSocket
 - [ ] Platform desktop (Windows/Linux) & iOS/macOS

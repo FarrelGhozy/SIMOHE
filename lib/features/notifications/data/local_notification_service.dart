@@ -80,4 +80,34 @@ class LocalNotificationService {
         EventType.deviceOnline => 'Perangkat online',
         EventType.safetyCutoff => 'Safety cutoff!',
       };
+
+  /// Notifikasi lokal bebas (bukan dari tabel `events`): dipakai peringatan
+  /// matang berbasis stabilitas NH3 yang dihitung di HP.
+  Future<void> showMessage({
+    required String title,
+    required String body,
+    int id = 999001,
+  }) async {
+    if (kIsWeb || !_available) return;
+    try {
+      final details = NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          _channelName,
+          channelDescription: _channelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+      );
+      await _plugin.show(
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: details,
+        payload: 'stable',
+      );
+    } on Object {
+      // Abaikan kegagalan notifikasi sistem agar alur data tidak terganggu.
+    }
+  }
 }
