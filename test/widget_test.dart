@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:simohe/app.dart';
 import 'package:simohe/core/network/providers.dart';
+import 'package:simohe/features/analysis/data/stability_calc.dart';
+import 'package:simohe/features/analysis/domain/providers.dart';
 import 'package:simohe/features/dashboard/domain/providers.dart';
 import 'package:simohe/features/notifications/domain/providers.dart';
 import 'package:simohe/features/settings/domain/providers.dart';
@@ -77,6 +78,37 @@ class _StubSettingsNotifier extends SettingsNotifier {
   Future<AppSettings> build() async => _sampleSettings;
 }
 
+class _StubTrendNotifier extends DashboardTrendNotifier {
+  @override
+  Future<List<ReadingPoint>> build() async => const <ReadingPoint>[];
+}
+
+class _StubAnalysisNotifier extends AnalysisNotifier {
+  @override
+  Future<AnalysisData> build() async => AnalysisData(
+        stability: const StabilityResult(
+          status: StabilityStatus.ok,
+          total: 20,
+          valid: 20,
+          percent: 90,
+          mean: 24,
+          min: 23.8,
+          max: 24.2,
+          range: 0.4,
+          std: 0.2,
+        ),
+        points: const [],
+        analyzedAt: DateTime.utc(2026, 10, 8, 10),
+        windowMin: 60,
+        thresholdPct: 85,
+        fromRaw: true,
+        deviceOk: true,
+        gateReason: null,
+        mature: true,
+        notified: false,
+      );
+}
+
 void main() {
   testWidgets('Shell menampilkan navigasi utama', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -94,9 +126,8 @@ void main() {
           liveProvider.overrideWith(_StubLiveNotifier.new),
           eventsProvider.overrideWith(_StubEventsNotifier.new),
           settingsProvider.overrideWith(_StubSettingsNotifier.new),
-          dashboardTrendProvider.overrideWith(
-            (ref) async => <ReadingPoint>[],
-          ),
+          dashboardTrendProvider.overrideWith(_StubTrendNotifier.new),
+          analysisProvider.overrideWith(_StubAnalysisNotifier.new),
         ],
         child: const SimoheApp(),
       ),
@@ -106,5 +137,34 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.text('Dashboard'), findsWidgets);
     expect(find.text('Riwayat'), findsOneWidget);
+    expect(find.text('Analisis'), findsWidgets);
+    expect(find.text('Notifikasi'), findsNothing);
+  });
+
+  testWidgets('Bell notifikasi ada di Dashboard', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final preferences = await SharedPreferences.getInstance();
+
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(preferences),
+          liveProvider.overrideWith(_StubLiveNotifier.new),
+          eventsProvider.overrideWith(_StubEventsNotifier.new),
+          settingsProvider.overrideWith(_StubSettingsNotifier.new),
+          dashboardTrendProvider.overrideWith(_StubTrendNotifier.new),
+          analysisProvider.overrideWith(_StubAnalysisNotifier.new),
+        ],
+        child: const SimoheApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.notifications_outlined), findsWidgets);
   });
 }

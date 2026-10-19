@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/notifications/domain/providers.dart';
-
 class _Destination {
   const _Destination(this.icon, this.label);
 
@@ -15,7 +13,7 @@ const List<_Destination> _destinations = [
   _Destination(Icons.dashboard_outlined, 'Dashboard'),
   _Destination(Icons.show_chart, 'Riwayat'),
   _Destination(Icons.tune, 'Kontrol'),
-  _Destination(Icons.notifications_outlined, 'Notifikasi'),
+  _Destination(Icons.science_outlined, 'Analisis'),
   _Destination(Icons.settings_outlined, 'Pengaturan'),
 ];
 
@@ -31,7 +29,6 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unread = ref.watch(unreadCountProvider);
     final wide = MediaQuery.sizeOf(context).width >= 700;
 
     if (wide) {
@@ -45,7 +42,7 @@ class AppShell extends ConsumerWidget {
               destinations: [
                 for (var i = 0; i < _destinations.length; i++)
                   NavigationRailDestination(
-                    icon: _railIcon(i, unread),
+                    icon: Icon(_destinations[i].icon),
                     label: Text(_destinations[i].label),
                   ),
               ],
@@ -65,24 +62,11 @@ class AppShell extends ConsumerWidget {
         destinations: [
           for (var i = 0; i < _destinations.length; i++)
             NavigationDestination(
-              icon: _barIcon(i, unread),
-              selectedIcon: _barIcon(i, unread),
+              icon: Icon(_destinations[i].icon),
               label: _destinations[i].label,
             ),
         ],
       ),
     );
-  }
-
-  Widget _barIcon(int index, int unread) {
-    final icon = Icon(_destinations[index].icon);
-    if (index != 3 || unread <= 0) return icon;
-    return Badge(label: Text('$unread'), child: icon);
-  }
-
-  Widget _railIcon(int index, int unread) {
-    final icon = Icon(_destinations[index].icon);
-    if (index != 3 || unread <= 0) return icon;
-    return Badge(label: Text('$unread'), child: icon);
   }
 }

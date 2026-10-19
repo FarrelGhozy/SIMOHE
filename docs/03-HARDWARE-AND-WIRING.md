@@ -5,17 +5,16 @@
 | # | Komponen | Spesifikasi | Jumlah | Fungsi |
 |---|---|---|---|---|
 | 1 | Arduino Mega 2560 R3 + ESP8266 WiFi | Board built-in IoT WiFi (ESP8266, 32MB, varian Wemos NodeMCU) | 1 | Otak sistem + koneksi WiFi |
-| 2 | Sensor suhu air | DS18B20 waterproof probe (OneWire) | 1 | Mengukur suhu pupuk/cairan |
-| 3 | Resistor pull-up | 4.7 kΩ | 1 | Untuk bus OneWire DS18B20 |
-| 4 | Sensor gas amonia | Modul MQ-137 (NH3), output analog AOUT | 1 | Mengukur kadar gas NH3 |
-| 5 | Modul relay | 2-channel, 5V, opto-isolated | 1 | Saklar katup (K1) & heater (K2) |
-| 6 | Solenoid valve | 12V DC | 1 | Katup pembuangan (manual dari app) |
-| 7 | Heater/pemanas | 12V DC (sesuai kebutuhan daya) | 1 | Menjaga suhu fermentasi |
-| 8 | Catu daya | 12V DC (adaptor/aki) dengan arus cukup | 1 | Daya aktuator |
-| 9 | Step-down | 12V → 5V, ≥ 3A | 1 | Daya logika (Mega, sensor, relay) |
-| 10 | Terminal block | 2 baris (V+/GND) | 1 | Distribusi daya |
-| 11 | Fuse + holder | Sesuai arus aktuator | 1 | Proteksi hubung pendek |
-| 12 | Kabel & jumper | Sesuai kebutuhan | — | Koneksi |
+| 2 | Sensor suhu air | Modul adapter DS18B20 + probe waterproof (OneWire) | 1 | Mengukur suhu pupuk/cairan |
+| 3 | Sensor gas amonia | Modul MQ-137 (NH3), output analog AOUT | 1 | Mengukur kadar gas NH3 |
+| 4 | Modul relay | 2-channel, 5V, opto-isolated | 1 | Saklar katup (K1) & heater (K2) |
+| 5 | Solenoid valve | 12V DC | 1 | Katup pembuangan (manual dari app) |
+| 6 | Heater/pemanas | 12V DC (sesuai kebutuhan daya) | 1 | Menjaga suhu fermentasi |
+| 7 | Catu daya | 12V DC (adaptor/aki) dengan arus cukup | 1 | Daya aktuator |
+| 8 | Step-down | 12V → 5V, ≥ 3A | 1 | Daya logika (Mega, sensor, relay) |
+| 9 | Terminal block | 2 baris (V+/GND) | 1 | Distribusi daya |
+| 10 | Fuse + holder | Sesuai arus aktuator | 1 | Proteksi hubung pendek |
+| 11 | Kabel & jumper | Sesuai kebutuhan | — | Koneksi |
 
 > **Sumber daya**: desain mendukung adaptor 12V sebagai sumber utama. Opsi panel
 > surya + aki (seperti dokumen lama di `reference/legacy`) tetap kompatibel:
@@ -26,7 +25,7 @@
 
 | Fungsi | Pin Mega | Catatan |
 |---|---|---|
-| DS18B20 DATA | Digital 2 | OneWire + pull-up 4.7 kΩ ke 5V |
+| DS18B20 DQ (modul) | Digital 2 | OneWire langsung, tanpa resistor eksternal |
 | MQ-137 AOUT | Analog A0 | Output analog (bukan D0) |
 | Relay K1 (katup) | Digital 7 | Aktif HIGH (sesuaikan modul) |
 | Relay K2 (heater) | Digital 6 | Aktif HIGH (sesuaikan modul) |
@@ -51,18 +50,18 @@ Adaptor/Aki 12V (-) ──▶ GND umum ──▶ [Terminal GND]
 GND ──▶ Step-down IN-
 Step-down OUT+ (5V) ──▶ [Terminal V+ 5V]
 Step-down OUT- ──▶ [Terminal GND]
-V+ 5V ──▶ Mega 5V, DS18B20 VCC, MQ-137 VCC, Relay VCC
-GND   ──▶ Mega GND, DS18B20 GND, MQ-137 GND, Relay GND
+V+ 5V ──▶ Mega 5V, Modul DS18B20 VCC, MQ-137 VCC, Relay VCC
+GND   ──▶ Mega GND, Modul DS18B20 GND, MQ-137 GND, Relay GND
 ```
 
-### 2. Sensor Suhu (DS18B20)
+### 2. Sensor Suhu (Modul DS18B20)
 ```
-DS18B20 VCC  (merah)  ──▶ V+ 5V
-DS18B20 GND  (hitam)  ──▶ GND
-DS18B20 DATA (kuning) ──▶ Mega Digital 2
-Resistor 4.7 kΩ antara DATA dan V+ 5V (pull-up)
+Modul VCC ──▶ V+ 5V
+Modul GND ──▶ GND
+Modul DQ  ──▶ Mega Digital 2
 ```
-Saran: gunakan mode daya normal (3 kabel), bukan parasitic power.
+Tanpa resistor pull-up eksternal (sudah onboard di modul adapter).
+Saran: gunakan mode daya normal (3 kabel), bukan parasitic power. Probe waterproof tetap tercelup ke cairan.
 
 ### 3. Sensor Amonia (MQ-137)
 ```
@@ -127,7 +126,7 @@ flowchart LR
     PSU --> BD["Step-down 12V->5V"]
     BD --> T5["Terminal 5V"]
     T5 --> Mega["Arduino Mega"]
-    T5 --> DS["DS18B20"]
+    T5 --> DS["Modul DS18B20"]
     T5 --> MQ["MQ-137"]
     T5 --> RL["Relay 2ch"]
     DS -->|Digital 2| Mega
@@ -149,6 +148,11 @@ flowchart LR
 - Pastikan GND logika dan GND daya bertemu di satu titik (star ground) untuk
   menghindari noise pembacaan analog.
 - Beri jarak antara jalur 12V dan kabel sinyal sensor.
+
+## Cetak Biru Fisik & Rangka Mesin
+Rancangan mekanikal, dimensi rangka baja, tabung stainless, pengaduk spiral Archimedes,
+serta 5 visualisasi 3D CAD dapat dilihat pada:
+[`docs/CetakBiru/README.md`](CetakBiru/README.md).
 
 ## Referensi Lama
 Dokumen wiring & flowchart proyek lama yang diarsipkan (konsep ultrasonik dan

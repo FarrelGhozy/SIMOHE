@@ -28,8 +28,7 @@ Membangun sistem monitoring pengolahan kotoran hewan yang:
 ## Ruang Lingkup
 Termasuk:
 - Aplikasi Flutter (Android + Web).
-- Server Bun + TypeScript + Elysia.
-- Database MySQL.
+- Backend Supabase (Postgres + Edge Functions + Cron, lihat `17`).
 - Firmware Arduino Mega 2560 + ESP8266.
 - Dokumentasi desain, pengujian, dan deployment.
 

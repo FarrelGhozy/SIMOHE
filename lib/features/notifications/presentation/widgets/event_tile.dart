@@ -6,7 +6,7 @@ import '../../../../shared/models/enums.dart';
 import '../../../../shared/models/event_item.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../../shared/widgets/tone.dart';
-import '../../domain/providers.dart';
+import 'event_detail_sheet.dart';
 
 IconData _iconFor(EventType type) => switch (type) {
       EventType.mature => Icons.agriculture,
@@ -35,9 +35,7 @@ class EventTile extends ConsumerWidget {
     return Card(
       color: isMature ? theme.colorScheme.primaryContainer : null,
       child: ListTile(
-        onTap: unread
-            ? () => ref.read(eventsProvider.notifier).markRead(event.id)
-            : null,
+        onTap: () => showEventDetailSheet(context, event),
         leading: CircleAvatar(
           backgroundColor: theme.colorScheme.surfaceContainerHighest,
           child: Icon(

@@ -36,18 +36,24 @@ Contoh payload `mature`:
 ```
 
 ## Pengiriman ke Aplikasi
-### MVP (polling)
-- Aplikasi polling `GET /api/events?unread=true` tiap 30–60 detik.
-- Badge jumlah belum dibaca di tab Notifikasi dan ikon lonceng.
+### MVP (terimplementasi)
+- Aplikasi polling daftar event (interval dari Pengaturan → Aplikasi, default
+  30 dtk) + Realtime `events`; badge jumlah belum dibaca di tab Notifikasi.
+- Tap event membuka **bottom sheet detail** (jenis, severity, pesan, waktu,
+  `payload`, status dibaca) dengan tombol aksi kontekstual ke halaman terkait.
+- Menandai dibaca optimistik + umpan balik; "tandai semua" berkonfirmasi.
 
-### Notifikasi Lokal (Android)
-- Saat polling menemukan event baru (id lebih besar dari yang terakhir),
-  tampilkan notifikasi lokal via `flutter_local_notifications`.
-- Simpan `last_seen_event_id` di `shared_preferences` agar tidak dobel.
+### Notifikasi Lokal Sistem (Android, terimplementasi)
+- Event baru (`id` > `last_seen_event_id` di `shared_preferences`) memunculkan
+  notifikasi tray via `flutter_local_notifications` saat aplikasi berjalan.
+- Permission `POST_NOTIFICATIONS` (Android 13+) diminta saat init.
+- Tap notifikasi → `/notifications?id=<id>` → sheet detail.
+- Preferensi lokal: aktif/nonaktif + hanya `warning`/`critical`.
+- Batasan: tidak muncul saat aplikasi tertutup total (butuh FCM).
 
 ### Web
 - Opsi notifikasi browser (Web Notification API) bila diizinkan.
-- Minimal: badge + daftar event.
+- Minimal: badge + daftar event (notifikasi sistem web belum diaktifkan).
 
 ### Push Server (opsi lanjutan)
 - FCM (Android) / Web Push sebagai peningkatan. Perlu registrasi token & jalur
@@ -58,9 +64,10 @@ Contoh payload `mature`:
 - Aplikasi menyimpan id terakhir yang dilihat.
 - Operasi "tandai dibaca" bersifat idempotent.
 
-## Preferensi (opsional, fase lanjutan)
-- Aktif/nonaktif per jenis event.
-- Ambang notifikasi (mis. hanya `warning` ke atas).
+## Preferensi (terimplementasi sebagian)
+- Aktif/nonaktif notifikasi sistem (lokal).
+- Ambang notifikasi (hanya `warning` ke atas).
+- Aktif/nonaktif per jenis event: belum (fase lanjutan).
 
 ## Endpoint Terkait
 ```

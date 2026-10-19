@@ -1,35 +1,33 @@
 # 02 — System Architecture
 
+> **Migrasi 2026-10-14 (Fase 8)**: backend Bun+Elysia+MySQL diganti
+> **Supabase-only**. Server lama diarsipkan di
+> `reference/archive/server-bun-2026-10-14/`. Rancangan migrasi:
+> `17-SUPABASE-MIGRATION.md`.
+
 ## Gambaran Umum
-Tiga lapisan utama: **Perangkat IoT** → **Server** → **Aplikasi**. Komunikasi
-perangkat→server memakai **HTTP REST** (agar mudah disimulasikan, bisa via IP
-LAN maupun domain). Aplikasi memakai HTTP REST + polling untuk live & notifikasi.
+Tiga lapisan utama: **Perangkat IoT** → **Supabase** → **Aplikasi**. Komunikasi
+perangkat→Supabase memakai **HTTPS POST ke Edge Function** (kontrak sama
+seperti REST lama agar firmware minim berubah). Aplikasi memakai PostgREST +
+Edge Functions + Realtime (dengan fallback polling).
 
 ```
-┌───────────────────────────┐        HTTP POST (ingest)        ┌───────────────────────────┐
-│        PERANGKAT IOT       │ ───────────────────────────────▶ │          SERVER           │
-│  Arduino Mega + ESP8266    │ ◀─────────────────────────────── │  Bun + TypeScript + Elysia│
-│                            │   response: commands + config    │                           │
-│  - DS18B20 (suhu air)      │                                  │  - REST API               │
-│  - MQ-137  (gas NH3)       │                                  │  - Business logic         │
-│  - Relay K1 (katup)        │                                  │  - Sampling job           │
-│  - Relay K2 (heater)       │                                  │  - Event/notification     │
-└───────────────────────────┘                                  └────────────┬──────────────┘
-                                                                            │ SQL
-                                                                            ▼
-                                                                 ┌───────────────────────────┐
-                                                                 │          MySQL            │
-                                                                 └───────────────────────────┘
-                                                                            ▲
-                                                                            │ HTTP REST (polling)
-                                                                 ┌──────────┴────────────────┐
-                                                                 │      APLIKASI FLUTTER     │
-                                                                 │   Android  +  Web         │
-                                                                 │  - Dashboard              │
-                                                                 │  - Grafik histori         │
-                                                                 │  - Kontrol katup/heater   │
-                                                                 │  - Notifikasi & pengaturan│
-                                                                 └───────────────────────────┘
+┌───────────────────────────┐   HTTPS POST /functions/v1/iot-ingest  ┌───────────────────────────┐
+│        PERANGKAT IOT       │ ──────────────────────────────────────▶ │         SUPABASE          │
+│  Arduino Mega + ESP8266    │ ◀────────────────────────────────────── │  Edge Functions (Deno)    │
+│                            │   response: commands + config    │      │  Postgres + RLS           │
+│  - DS18B20 (suhu air)      │                                  │      │  Realtime + Cron          │
+│  - MQ-137  (gas NH3)       │                                  └──────┬────────────────────┘
+│  - Relay K1 (katup)        │                                         │ PostgREST/Realtime/Functions
+│  - Relay K2 (heater)       │                                         ▼
+└───────────────────────────┘                                ┌──────────┴────────────────┐
+                                                             │      APLIKASI FLUTTER     │
+                                                             │   Android  +  Web         │
+                                                             │  - Dashboard              │
+                                                             │  - Grafik histori         │
+                                                             │  - Kontrol katup/heater   │
+                                                             │  - Notifikasi & pengaturan│
+                                                             └───────────────────────────┘
 ```
 
 ## Diagram Konteks (C4 Level 1)
@@ -38,15 +36,13 @@ LAN maupun domain). Aplikasi memakai HTTP REST + polling untuk live & notifikasi
 flowchart LR
     Operator([Operator])
     App["Aplikasi Flutter\n(Android & Web)"]
-    Server["Server Elysia\n(Bun + TS)"]
-    DB[("MySQL")]
+    Supa["Supabase\n(Functions + Postgres)"]
     Device["Perangkat IoT\nMega + ESP8266"]
 
     Operator -->|melihat & mengontrol| App
-    App -->|HTTP REST| Server
-    Server -->|baca/tulis| DB
-    Device -->|HTTP POST ingest| Server
-    Server -->|commands + config| Device
+    App -->|PostgREST + Functions + Realtime| Supa
+    Device -->|HTTPS POST ingest| Supa
+    Supa -->|commands + config| Device
 ```
 
 ## Container Diagram (C4 Level 2)
@@ -63,68 +59,74 @@ flowchart TB
         Mega --> R2["Relay K2 -> Heater"]
     end
 
-    subgraph ServerSide["Server (Docker/VPS)"]
-        API["Elysia API\n(REST)"]
-        Job["Sampling & Event Job"]
-        API --- Job
+    subgraph Cloud["Supabase (Free tier)"]
+        Ingest["Edge Function: iot-ingest"]
+        Write["Edge Functions: app-command\napp-settings, app-batch"]
+        Tick["Edge Function: jobs-tick\n(Cron tiap menit)"]
+        DB[("Postgres + RLS")]
+        Ingest --- DB
+        Write --- DB
+        Tick --- DB
     end
 
-    DB[("MySQL")]
     App["Flutter App\nAndroid + Web"]
 
-    ESP -->|"POST /api/iot/ingest"| API
-    API -->|"commands[], config"| ESP
-    App -->|"REST + polling"| API
-    API --> DB
-    Job --> DB
+    ESP -->|"POST /functions/v1/iot-ingest\n(apikey + X-Device-Key)"| Ingest
+    Ingest -->|"commands[], config"| ESP
+    App -->|"PostgREST SELECT + Functions tulis"| Cloud
+    App -.->|"Realtime subscribe"| DB
 ```
 
 ## Alur Data
 
-### Perangkat → Server
+### Perangkat → Supabase
 1. Mega membaca sensor tiap 2 detik, mengirim telemetry ke ESP via Serial.
-2. ESP menyimpan nilai terbaru dan mengirim `POST /api/iot/ingest` tiap
-   `ingest_interval` (default 10 detik).
-3. Server menyimpan ke `latest_state`, mengevaluasi logika bisnis (matang,
-   suhu, safety), lalu membalas dengan daftar perintah tertunda + config
-   terbaru.
+2. ESP menyimpan nilai terbaru dan mengirim `POST /functions/v1/iot-ingest`
+   tiap `ingest_interval` (default 10 detik) dengan header `apikey`,
+   `Authorization: Bearer <publishable>`, dan `X-Device-Key`.
+3. Function `iot-ingest` (service_role) menyimpan ke `latest_state`,
+   mengevaluasi logika bisnis (matang, suhu, safety — porting 1:1 dari server
+   lama), lalu membalas dengan daftar perintah tertunda + config terbaru.
 4. ESP meneruskan perintah ke Mega; Mega mengeksekusi lalu mengirim ack.
 
-### Server → Aplikasi
-1. Aplikasi polling `/api/live` tiap 10 detik untuk nilai terkini.
-2. Aplikasi polling `/api/events` untuk notifikasi baru.
-3. Saat operator mengontrol, aplikasi `POST /api/commands`; server mengantre;
-   perintah diambil ESP pada ingest berikutnya.
+### Supabase → Aplikasi
+1. Aplikasi membaca `devices` + `latest_state` + `settings` (PostgREST) untuk
+   live; subscribe Realtime `latest_state`, fallback polling 10 detik.
+2. Aplikasi membaca tabel `events` untuk notifikasi (polling 30 detik +
+   Realtime); tandai dibaca via UPDATE `is_read` (trigger guard).
+3. Saat operator mengontrol, aplikasi invoke `app-command`; function mengantre
+   `pending`; perintah diambil ESP pada ingest berikutnya.
 
-### Mengapa HTTP REST (bukan MQTT/WebSocket)?
-- Mudah disimulasikan tanpa broker; cukup `curl`/script.
-- Bisa diakses via IP LAN saat pengembangan maupun domain saat produksi.
-- Perangkat di belakang NAT cukup melakukan request keluar.
-- Trade-off: latensi kontrol bergantung interval ingest (diturunkan dengan
-  polling cepat perangkat saat ada perintah; lihat `05-COMMUNICATION-PROTOCOL.md`).
+### Mengapa Edge Function + PostgREST (bukan server sendiri)?
+- Tanpa VPS/Docker/Caddy: TLS, backup, dan scaling milik Supabase.
+- Kontrak ingest tidak berubah → firmware hampir tak tersentuh.
+- RLS read-only + tulis tervalidasi di function = aman tanpa login.
+- Trade-off: latensi kontrol bergantung interval ingest (sama seperti dulu;
+   `poll_after_sec` mempercepat saat ada perintah).
 
-## Komponen Server
+## Komponen Backend (Supabase)
 | Komponen | Tanggung jawab |
 |---|---|
-| **API layer** (Elysia) | Endpoint REST, validasi, autentikasi token |
-| **Service layer** | Logika bisnis: kematangan, suhu, safety, command |
-| **Data layer** (Drizzle ORM) | Query & migrasi MySQL |
-| **Sampling job** | Salin live → histori tiap interval |
-| **Event engine** | Buat event/notifikasi & deteksi offline |
+| **iot-ingest** (Deno) | Auth device, validasi, maturity/thermal/event, config+commands |
+| **app-command/settings/batch** | Tulis tervalidasi (TTL, clamp, batas wajar) |
+| **jobs-tick + Cron** | Sampling, offline-detector, command-expiry, retention |
+| **Postgres + RLS** | 8 tabel (`supabase/migrations/`), anon SELECT, tulis service_role |
+| **Realtime** | Subscribe `latest_state`/`events`/`commands` (opsional, fallback polling) |
 
 ## Komponen Aplikasi Flutter
 | Komponen | Tanggung jawab |
 |---|---|
-| **Core** | Config, theme, network client, router |
+| **Core** | Config (`SUPABASE_URL`/`PUBLISHABLE_KEY`), Supabase client, router |
 | **Features** | Dashboard, History, Control, Notifications, Settings, Device |
 | **Shared** | Widget & model umum |
-| **State** | Riverpod (provider/notifier + timer polling) |
+| **State** | Riverpod (provider/notifier + polling + Realtime channel) |
 | **Router** | go_router (bottom nav di mobile, rail di web) |
 | **Charts** | fl_chart |
 
 ## Non-Functional & Deployment (ringkas)
-- Server berjalan sebagai container (Bun) + MySQL 8, di depan reverse proxy TLS.
-- Aplikasi web & Android menunjuk ke base URL server yang sama (`API_BASE_URL`).
-- Kebijakan retensi data mentah dikendalikan job pemeliharaan.
+- Tidak ada server untuk dirawat; deploy = `supabase functions deploy` + migrasi SQL.
+- Aplikasi web & Android menunjuk project Supabase yang sama
+  (`SUPABASE_URL` via `--dart-define`).
+- Retensi `telemetry_raw` dikendalikan `jobs-tick` + `raw_retention_days`.
 
-Lihat detail di `06`, `07`, `08`, `11`, `12`.
+Lihat detail di `06`, `07`, `08`, `11`, `12`, `17`.

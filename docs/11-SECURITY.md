@@ -1,25 +1,30 @@
 # 11 — Security
 
+> **Migrasi 2026-10-14 (Fase 8)**: Bearer `APP_TOKEN` + MySQL dihapus. Akses
+> via Supabase publishable key + RLS + Edge Functions (detail di `17`).
+
 ## Prinsip
 - **Least privilege**: setiap komponen hanya bisa melakukan yang diperlukan.
 - **Fail-safe**: saat ragu/gagal, aktuator kembali ke kondisi aman (heater OFF,
   katup tertutup).
-- **Tanpa rahasia di repo**: semua kredensial via environment.
-- **Anggap jaringan tidak tepercaya** untuk produksi (selalu HTTPS).
+- **Tanpa rahasia di repo**: semua kredensial via environment/dashboard secrets.
+- **Anggap jaringan tidak terpercaya** untuk produksi (selalu HTTPS).
 
 ## Autentikasi & Otorisasi
 | Aktor | Mekanisme |
 |---|---|
-| Perangkat IoT | Header `X-Device-Key` (32 char acak per device) |
-| Aplikasi (single user) | Header `Authorization: Bearer <APP_TOKEN>` |
-| Admin DB | User MySQL khusus, hak terbatas pada database aplikasi |
+| Perangkat IoT | Header `X-Device-Key` (32 char acak) + header Supabase `apikey` |
+| Aplikasi (single user, tanpa login) | Publishable key + RLS read-only (`anon SELECT`) |
+| Tulis aplikasi | Edge Functions (`service_role` internal) + opsional `X-App-Key` |
+| Tandai notifikasi dibaca | UPDATE `is_read` langsung (trigger guard: kolom lain ditolak) |
+| Admin DB | Dashboard Supabase (MFA aktif) |
 
-- `device_key` dan `APP_TOKEN` dibuat acak (mis. 32+ byte dari CSPRNG).
-- Kunci tersimpan sebagai hash? Untuk MVP, perbandingan langsung dapat diterima
-  karena single-device & di belakang TLS; namun disarankan simpan **hash**
-  (mis. SHA-256) dan bandingkan hash.
-- Rotasi: sediakan prosedur ganti `device_key`/`APP_TOKEN` di `.env` + update
-  ESP.
+- `device_key` dibuat acak; tersimpan sebagai **hash SHA-256** di
+  `devices.device_key`.
+- Publishable key memang publik — keamanannya dari RLS + validasi function.
+- `service_role` hanya di Edge Functions Secrets, tidak pernah di repo/app.
+- Rotasi: ganti `device_key` di DB + `secrets.h` + flash ulang; rotasi
+  `APP_WRITE_KEY` bila dipakai.
 
 ## Transport
 - **Produksi wajib HTTPS** (TLS via reverse proxy/Caddy).
@@ -51,17 +56,26 @@
 - Log akses tanpa data sensitif (jangan log token).
 
 ## Database
-- MySQL **tidak** diekspos ke publik (hanya jaringan internal Docker).
-- User aplikasi bukan `root`; hak hanya SELECT/INSERT/UPDATE/DELETE pada DB app.
-- Backup terjadwal (lihat `12-DEPLOYMENT.md`).
-- `utf8mb4`, koneksi internal.
+- Postgres milik Supabase (backup terjadwal di dashboard).
+- RLS aktif di semua tabel; anon hanya SELECT (+ UPDATE `is_read` via trigger).
+- Jangan ekspos `service_role` ke publik.
+- Waktu tetap **UTC**.
 
 ## Aplikasi Flutter
-- Jangan hardcode token di kode; gunakan `--dart-define`.
-- Untuk web, sadari token bisa terlihat di klien (single user). Batasi origin
-  server (CORS) dan gunakan HTTPS.
-- Validasi/kuras input (meski server tetap validasi).
+- Jangan hardcode kunci di kode; gunakan `--dart-define`.
+- Publishable key memang terlihat di klien (single user, RLS read-only).
+- Validasi/kuras input (meski function tetap validasi).
 - Sembunyikan data sensitif di log.
+
+## Checklist Keamanan Rilis
+- [ ] HTTPS (Supabase default), ESP menunjuk `https://<ref>.supabase.co`
+- [ ] `device_key` kuat (32 char) dan hanya hash-nya di DB
+- [ ] `service_role` hanya di Edge Functions Secrets
+- [ ] RLS aktif + grant minimal (cek di SQL Editor)
+- [ ] Rate limit ingest aktif (best-effort di function)
+- [ ] Backup terjadwal + uji restore
+- [ ] Log tidak memuat kunci
+- [ ] Firmware fail-safe teruji
 
 ## Firmware
 - Simpan kredensial WiFi & device key di konfigurasi, bukan di repo publik.
@@ -71,17 +85,12 @@
   dimatikan dari aplikasi.
 
 ## CORS
-- Izinkan hanya origin aplikasi web resmi (`APP_CORS_ORIGIN` di `.env`).
-- Untuk dev lokal boleh `*` sementara, jangan di produksi.
+- Supabase mengatur CORS untuk PostgREST/Functions; batasi URL aplikasi di
+  **Dashboard → Authentication → URL Configuration** bila memakai Auth kelak.
+- Tanpa login: tidak ada origin sensitif; keamanan dari RLS + validasi.
 
-## Checklist Keamanan Rilis
-- [ ] HTTPS aktif, HTTP dialihkan ke HTTPS
-- [ ] `APP_TOKEN` & `device_key` kuat dan tidak ada di repo
-- [ ] `.env` masuk `.gitignore`
-- [ ] MySQL tidak terekspos publik
-- [ ] Rate limit aktif
-- [ ] CORS dibatasi
-- [ ] User DB non-root
-- [ ] Backup & retensi berjalan
-- [ ] Log tidak memuat token
-- [ ] Firmware fail-safe teruji
+## Checklist Keamanan Rilis (lama, arsip — lihat checklist baru di atas)
+- [ ] ~~HTTPS aktif, HTTP dialihkan ke HTTPS~~ → HTTPS default Supabase
+- [ ] ~~`APP_TOKEN` & `device_key` kuat dan tidak ada di repo~~ → device_key + RLS
+- [ ] ~~MySQL tidak terekspos publik~~ → Postgres milik Supabase
+- [ ] ~~User DB non-root~~ → service_role hanya di Functions Secrets

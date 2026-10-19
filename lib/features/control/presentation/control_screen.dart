@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/widgets/notification_bell.dart';
 import 'widgets/command_history.dart';
 import 'widgets/heater_control.dart';
 import 'widgets/valve_control.dart';
@@ -11,7 +12,10 @@ class ControlScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Kontrol')),
+      appBar: AppBar(
+        title: const Text('Kontrol'),
+        actions: const [NotificationBell()],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: const [

@@ -1,24 +1,41 @@
 /// Konfigurasi runtime aplikasi.
 ///
 /// Nilai diisi lewat `--dart-define`, bukan hardcode. Contoh:
-/// `flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:3000
-/// --dart-define=APP_TOKEN=change-me-app-token`
+/// `flutter run -d chrome --dart-define=SUPABASE_URL=https://xyz.supabase.co
+/// --dart-define=SUPABASE_PUBLISHABLE_KEY=...`
+/// Backend: Supabase (tanpa login, anon key + RLS read-only).
 class AppConfig {
   const AppConfig._();
 
-  /// Base URL server Elysia (contoh: http://192.168.1.10:3000).
-  static const String apiBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://localhost:3000',
+  /// URL project Supabase (contoh: https://xyzcompany.supabase.co).
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://<ref>.supabase.co',
   );
 
-  /// Token aplikasi (single user) untuk header `Authorization: Bearer`.
-  static const String appToken = String.fromEnvironment(
-    'APP_TOKEN',
-    defaultValue: 'change-me-app-token',
+  /// Publishable/anon key Supabase (boleh disematkan di app; RLS read-only).
+  /// Terima kunci baru (`sb_publishable_...`) maupun anon key lama.
+  static const String supabasePublishableKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+    defaultValue: String.fromEnvironment(
+      'SUPABASE_ANON_KEY',
+      defaultValue: 'change-me-publishable-key',
+    ),
   );
 
-  /// Interval polling nilai live dari server (detik).
+  /// Kunci tulis opsional untuk Edge Functions (header X-App-Key).
+  /// Kosongkan bila APP_WRITE_KEY tidak diset di Supabase.
+  static const String appWriteKey = String.fromEnvironment(
+    'APP_WRITE_KEY',
+    defaultValue: '',
+  );
+
+  /// Header tulis ke Edge Functions (kosong bila tanpa kunci).
+  static Map<String, String> get functionHeaders =>
+      appWriteKey.isEmpty ? const {} : {'X-App-Key': appWriteKey};
+
+  /// Interval polling nilai live (detik). Tetap dipakai sebagai fallback
+  /// bila Realtime terputus.
   static const int livePollIntervalSeconds = 10;
 
   /// Interval polling daftar event/notifikasi (detik).

@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:simohe/core/network/api_exception.dart';
 import 'package:simohe/core/network/offline_cache.dart';
 import 'package:simohe/core/network/providers.dart';
 import 'package:simohe/features/dashboard/data/dashboard_repository.dart';
@@ -38,8 +38,9 @@ final _live = LiveState(
   ),
 );
 
-class _FailingRepository implements DashboardRepository {
-  _FailingRepository(this.error);
+class _FailingRepository extends DashboardRepository {
+  _FailingRepository(this.error)
+      : super(SupabaseClient('http://localhost:8000', 'test-key'));
 
   final ApiException error;
 

@@ -98,8 +98,7 @@ enum ReadingBucket {
   h1,
 }
 
-extension HeaterModeLabel on HeaterMode {
-  String get label => switch (this) {
+extension HeaterModeLabel on HeaterMode {  String get label => switch (this) {
         HeaterMode.auto => 'AUTO',
         HeaterMode.forceOn => 'FORCE ON',
         HeaterMode.forceOff => 'FORCE OFF',
@@ -184,3 +183,18 @@ extension BatchStatusLabel on BatchStatus {
         BatchStatus.harvested => 'Dipanen',
       };
 }
+
+/// Parse nilai wire dari database (default aman bila tak dikenal).
+HeaterMode parseHeaterMode(String? wire) => switch (wire) {
+      'FORCE_ON' => HeaterMode.forceOn,
+      'FORCE_OFF' => HeaterMode.forceOff,
+      _ => HeaterMode.auto,
+    };
+
+DeviceStatus parseDeviceStatus(String? wire) => switch (wire) {
+      'heating' => DeviceStatus.heating,
+      'mature' => DeviceStatus.mature,
+      'draining' => DeviceStatus.draining,
+      'error' => DeviceStatus.error,
+      _ => DeviceStatus.idle,
+    };

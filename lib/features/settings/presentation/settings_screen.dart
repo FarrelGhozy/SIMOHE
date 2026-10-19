@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../shared/models/settings.dart';
 import '../../../shared/widgets/async_value_view.dart';
+import '../../../shared/widgets/notification_bell.dart';
 import '../domain/providers.dart';
 import 'widgets/settings_form.dart';
 
@@ -17,6 +18,7 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Pengaturan'),
         actions: [
+          const NotificationBell(),
           IconButton(
             tooltip: 'Info perangkat',
             icon: const Icon(Icons.memory),

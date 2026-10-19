@@ -1,7 +1,16 @@
 # 07 — Database Design
 
+> **Migrasi 2026-10-14 (Fase 8)**: MySQL 8 diganti **Postgres (Supabase)**.
+> DDL sumber kebenaran ada di `supabase/migrations/0001_init.sql` (+
+> `0002_events_read.sql`); seed di `supabase/seed.sql`. Skema MySQL di bawah
+> dipertahankan sebagai **referensi pemetaan** (aturan konversi: `DATETIME`→
+> `timestamptz` UTC, `TINYINT(1)`→`boolean`, `JSON`→`jsonb`,
+> `commands.id CHAR(36)`→`uuid`, auto-increment→`identity`).
+
 ## DBMS
-MySQL 8, charset `utf8mb4`, timezone data dalam **UTC** (`DATETIME`).
+Postgres (Supabase), timezone data **UTC** (`timestamptz`). RLS aktif:
+publishable key hanya `SELECT` (tulis via Edge Functions `service_role`),
+kecuali UPDATE `is_read` di `events` (dibatasi trigger, migrasi `0002`).
 
 ## ERD
 
@@ -255,5 +264,6 @@ CREATE TABLE batches (
 - 1 batch `fermenting` (opsional).
 
 ## Migrasi
-- Dikelola `drizzle-kit` (`bun run db:generate`, `bun run db:migrate`).
-- Skema sumber: `server/src/db/schema.ts`; SQL di `server/drizzle/`.
+- Dikelola sebagai SQL di `supabase/migrations/` (dijalankan via SQL Editor /
+  `supabase db push`). Skema MySQL/Drizzle lama ada di
+  `reference/archive/server-bun-2026-10-14/` sebagai referensi porting.

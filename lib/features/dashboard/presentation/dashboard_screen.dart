@@ -5,6 +5,8 @@ import '../../../core/theme/brand_colors.dart';
 import '../../../shared/models/live_state.dart';
 import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/brand_icon.dart';
+import '../../../shared/widgets/notification_bell.dart';
+import '../../../features/analysis/presentation/widgets/stability_recap.dart';
 import '../domain/providers.dart';
 import 'widgets/dashboard_header.dart';
 import 'widgets/dashboard_trend.dart';
@@ -14,6 +16,13 @@ import 'widgets/sensor_metrics.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
+
+  Future<void> _refreshAll(WidgetRef ref) async {
+    await Future.wait([
+      ref.read(liveProvider.notifier).refresh(),
+      ref.read(dashboardTrendProvider.notifier).refresh(),
+    ]);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,18 +38,19 @@ class DashboardScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          const NotificationBell(),
           IconButton(
             tooltip: 'Muat ulang',
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.read(liveProvider.notifier).refresh(),
+            onPressed: () => _refreshAll(ref),
           ),
         ],
       ),
       body: AsyncValueView<LiveState>(
         value: live,
-        onRetry: () => ref.read(liveProvider.notifier).refresh(),
+        onRetry: () => _refreshAll(ref),
         builder: (data) => RefreshIndicator(
-          onRefresh: () => ref.read(liveProvider.notifier).refresh(),
+          onRefresh: () => _refreshAll(ref),
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -49,6 +59,8 @@ class DashboardScreen extends ConsumerWidget {
               SensorMetrics(live: data),
               const SizedBox(height: 12),
               MaturityProgress(live: data),
+              const SizedBox(height: 12),
+              const StabilityRecap(),
               const SizedBox(height: 12),
               QuickControls(live: data),
               const SizedBox(height: 12),

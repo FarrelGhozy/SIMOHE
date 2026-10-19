@@ -1,6 +1,10 @@
-import 'package:dio/dio.dart';
+import 'dart:async';
+import 'dart:io';
 
-/// Error seragam dari server: `{ "error": { "code", "message" } }`.
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// Error seragam backend: `{ "error": { "code", "message" } }`
+/// (Edge Functions) atau error PostgREST/jaringan.
 class ApiException implements Exception {
   const ApiException({
     required this.code,
@@ -16,70 +20,70 @@ class ApiException implements Exception {
 
   bool get isNetwork => code == 'NETWORK' || code == 'TIMEOUT';
 
-  factory ApiException.fromDio(DioException error) {
-    final status = error.response?.statusCode;
-    final body = error.response?.data;
+  /// Petakan error Supabase (Postgrest/Functions/jaringan) ke [ApiException].
+  factory ApiException.fromSupabase(Object error) {
+    if (error is ApiException) return error;
 
-    if (body is Map && body['error'] is Map) {
-      final apiError = body['error'] as Map;
-      final code = apiError['code'];
-      final message = apiError['message'];
-      if (code is String && message is String) {
-        return ApiException(code: code, message: message, statusCode: status);
+    if (error is FunctionException) {
+      final details = error.details;
+      if (details is Map && details['error'] is Map) {
+        final apiError = details['error'] as Map;
+        final code = apiError['code'];
+        final message = apiError['message'];
+        if (code is String && message is String) {
+          return ApiException(
+            code: code,
+            message: message,
+            statusCode: error.status,
+          );
+        }
       }
-    }
-
-    switch (error.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-      case DioExceptionType.transformTimeout:
-        return ApiException(
-          code: 'TIMEOUT',
-          message: 'Koneksi ke server timeout.',
-          statusCode: status,
-        );
-      case DioExceptionType.connectionError:
-      case DioExceptionType.unknown:
-        return ApiException(
-          code: 'NETWORK',
-          message: 'Tidak dapat terhubung ke server.',
-          statusCode: status,
-        );
-      case DioExceptionType.badCertificate:
-        return ApiException(
-          code: 'NETWORK',
-          message: 'Sertifikat server tidak valid.',
-          statusCode: status,
-        );
-      case DioExceptionType.cancel:
-        return ApiException(
-          code: 'CANCELLED',
-          message: 'Permintaan dibatalkan.',
-          statusCode: status,
-        );
-      case DioExceptionType.badResponse:
-        break;
-    }
-
-    if (status == 401) {
-      return const ApiException(
-        code: 'UNAUTHORIZED',
-        message: 'Token aplikasi tidak valid.',
-        statusCode: 401,
-      );
-    }
-    if (status != null && status >= 500) {
       return ApiException(
-        code: 'SERVER_ERROR',
-        message: 'Server sedang bermasalah. Coba lagi.',
-        statusCode: status,
+        code: 'FUNCTION_ERROR',
+        message: details is String && details.isNotEmpty
+            ? details
+            : 'Fungsi backend gagal.',
+        statusCode: error.status,
       );
     }
+
+    if (error is PostgrestException) {
+      return ApiException(
+        code: error.code ?? 'QUERY_ERROR',
+        message: error.message,
+      );
+    }
+
+    if (error is TimeoutException) {
+      return const ApiException(
+        code: 'TIMEOUT',
+        message: 'Koneksi ke Supabase timeout.',
+      );
+    }
+
+    if (error is SocketException ||
+        error is HttpException ||
+        error is HandshakeException) {
+      return const ApiException(
+        code: 'NETWORK',
+        message: 'Tidak dapat terhubung ke Supabase.',
+      );
+    }
+
+    final text = error.toString();
+    if (text.contains('SocketException') ||
+        text.contains('ClientException') ||
+        text.contains('Connection closed') ||
+        text.contains('Failed host lookup')) {
+      return const ApiException(
+        code: 'NETWORK',
+        message: 'Tidak dapat terhubung ke Supabase.',
+      );
+    }
+
     return ApiException(
       code: 'UNKNOWN',
-      message: error.message ?? 'Terjadi kesalahan tak terduga.',
-      statusCode: status,
+      message: 'Terjadi kesalahan tak terduga.',
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/models/reading.dart';
 import '../../../shared/widgets/async_value_view.dart';
+import '../../../shared/widgets/notification_bell.dart';
 import '../domain/providers.dart';
 import '../utils/csv_export.dart';
 import 'widgets/history_chart.dart';
@@ -35,6 +36,7 @@ class HistoryScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Riwayat'),
         actions: [
+          const NotificationBell(),
           IconButton(
             tooltip: 'Ekspor CSV',
             icon: const Icon(Icons.download),
